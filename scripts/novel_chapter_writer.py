@@ -610,9 +610,9 @@ class PromptGenerator:
         lines.append(f"文风参照：{style}")
         lines.append(f"目标字数：{target} 字。")
         lines.append(
-            "从场景本身的某个变化打开——时间推移、天色转换、"
-            "温度骤降或某个建筑/地形的新细节。"
-            "世界状态的变化映照人物的内在状态，但不做显性类比。"
+            "Open from a change in the scene itself - time lapse, sky shift, "
+            "Temperature plummeting or new details of a building/terrain."
+            "Changes in the state of the world reflect the inner state of the character, but do not make a dominant analogy."
         )
         lines.append(self._hard_rules())
         return "\n\n".join(lines)
@@ -635,9 +635,9 @@ class PromptGenerator:
         lines.append(f"写作风格：{style}")
         lines.append(f"本章字数：{target} 字以上。")
         lines.append(
-            "从一个微小的观察细节切入——某人手上的无意识动作、"
-            "桌上的某件物品、墙缝里漏进来的光或某个不合时宜的声音。"
-            "这个细节是整章情绪或冲突的缩影，但不要直接解释，让画面自己说话。"
+            "from a tiny observation detail - an unconscious action on someone's hand, "
+            "An object on the table, a light leaking from a crack in the wall, or some inopportune sound."
+            "This detail is a microcosm of the whole chapter of emotions or conflicts, but don't explain it directly, let the picture speak for itself."
         )
         lines.append(self._hard_rules())
         return "\n\n".join(lines)
@@ -660,38 +660,38 @@ class PromptGenerator:
         lines.append(f"文笔风格：{style}")
         lines.append(f"字数要求：约 {target} 字。")
         lines.append(
-            "本章有一个即将到来的碰撞或摊牌——先写碰撞之前那段时间里的"
-            "气氛积压、人物的准备动作和各自的心理活动。"
-            "让读者感受到压力在积聚，但不要过早引爆。"
-            "结尾由剧情的实际进展决定，不强制设置钩子或总结。"
+            "This chapter has an upcoming collision or showdown - write about the time before the collision "
+            "The atmosphere backlog, the characters' preparatory moves and their respective mental activities."
+            "Let the reader feel that the pressure is building, but don't detonate prematurely."
+            "The ending is determined by the actual progress of the plot, not the mandatory setting of hooks or summaries."
         )
         lines.append(self._hard_rules())
         return "\n\n".join(lines)
 
 
 class AIProvider:
-    """AI服务提供基类"""
+    """AI Service Delivery Base Class"""
     
     def __init__(self, config: Dict[str, Any]):
         self.config = config
     
     def generate(self, system_prompt: str, user_prompt: str) -> str:
-        """生成内容，子类必须实现"""
+        """Generate content, subclass must implement"""
         raise NotImplementedError
 
 
 class OpenAIProvider(AIProvider):
-    """OpenAI API提供者"""
+    """OpenAI API Provider"""
     
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         if not HAS_OPENAI:
             raise ImportError(
-                "OpenAI SDK 导入失败\n"
-                "请检查:\n"
-                "  1) 已安装 openai 包 (pip install openai)\n"
-                "  2) Python 环境正确\n"
-                "  3) 无版本冲突 (pip check)"
+                "OpenAI SDK import failed\ n "
+                "Please check:\ n"
+                "1) OpenAI package installed (pip install openAI)\ n"
+                "2) Python environment is correct\ n"
+                "3) No version conflicts (pip check)"
             )
         
         api_key = config.get('openai_api_key') or os.getenv('OPENAI_API_KEY')
@@ -704,7 +704,7 @@ class OpenAIProvider(AIProvider):
         self.max_tokens = config.get('max_tokens', 4000)
     
     def generate(self, system_prompt: str, user_prompt: str) -> str:
-        """调用OpenAI API生成内容"""
+        """Call the OpenAI API to generate content"""
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
@@ -721,17 +721,17 @@ class OpenAIProvider(AIProvider):
 
 
 class AnthropicProvider(AIProvider):
-    """Anthropic Claude API提供者"""
+    """Anthropic Claude API Provider"""
     
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         if not HAS_ANTHROPIC:
             raise ImportError(
-                "Anthropic SDK 导入失败\n"
-                "请检查:\n"
-                "  1) 已安装 anthropic 包 (pip install anthropic)\n"
-                "  2) Python 环境正确\n"
-                "  3) 无版本冲突 (pip check)"
+                "Anthropic SDK import failed\ n "
+                "Please check:\ n"
+                "1) installed anthropic package (pip install anthropic)\ n"
+                "2) Python environment is correct\ n"
+                "3) No version conflicts (pip check)"
             )
         
         api_key = config.get('anthropic_api_key') or os.getenv('ANTHROPIC_API_KEY')
@@ -748,12 +748,11 @@ class AnthropicProvider(AIProvider):
         self.thinking_budget: int = int(config.get('thinking_budget_tokens', 3000))
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
-        """调用 Claude API 生成内容。
+        """Call the Claude API to generate content.
 
-        当 extended_thinking=True 时启用深度推理模式：Claude 会在内部规划
-        场景结构、微时刻分布、情绪节奏后再输出散文，天然防止概括跳过。
-        Extended thinking 与 temperature 不兼容，启用时自动移除 temperature。
-        """
+        Enable deep inference mode when extended_thinking = True: Claude plans internally
+        Scene structure, micro-moment distribution, emotional rhythm, and then output prose, naturally preventing generalization from skipping.
+        Extended thinking is incompatible with temperature and automatically removes temperature when enabled."""
         try:
             if self.extended_thinking:
                 # extended thinking 不兼容 temperature，必须省略该参数
@@ -783,7 +782,7 @@ class AnthropicProvider(AIProvider):
 
 
 class LocalProvider(AIProvider):
-    """本地模型提供者（通过Ollama或其他本地API）"""
+    """Local Model Provider (via Ollama or other local APIs)"""
     
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
@@ -791,7 +790,7 @@ class LocalProvider(AIProvider):
         self.model = config.get('model', 'llama2')
     
     def generate(self, system_prompt: str, user_prompt: str) -> str:
-        """调用本地API生成内容"""
+        """Call the local API to generate content"""
         import urllib.request
         import json
         
@@ -819,11 +818,10 @@ class LocalProvider(AIProvider):
 
 
 class OpenAICompatibleProvider(AIProvider):
-    """通用 OpenAI 兼容 API 提供者（Kimi/GLM/MiniMax 等）。
+    """Generic OpenAI-compatible API provider (Kimi/GLM/MiniMax, etc.).
 
-    Kimi 2.5 (Moonshot)、GLM-5 (智谱)、MiniMax 2.5 均提供 OpenAI 兼容 API，
-    通过 base_url 切换即可。
-    """
+    Kimi 2.5 (Moonshot), GLM-5 (Smart Spectrum), MiniMax 2.5 all provide OpenAI-compatible APIs,
+    Just toggle through base_url."""
 
     PRESETS = {
         "kimi": {
@@ -864,7 +862,7 @@ class OpenAICompatibleProvider(AIProvider):
         self.max_tokens = config.get("max_tokens", 4000)
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
-        """调用 OpenAI 兼容 API 生成内容。"""
+        """Call the OpenAI-compliant API to generate content."""
         import urllib.request
         import json as _json
 
@@ -895,7 +893,7 @@ class OpenAICompatibleProvider(AIProvider):
 
 
 def create_ai_provider(config: Dict[str, Any]) -> AIProvider:
-    """工厂函数：根据配置创建对应的AI提供者"""
+    """Factory function: Create the corresponding AI provider according to the configuration"""
     provider = config.get('ai_provider', 'openai')
 
     if provider == 'openai':
@@ -914,14 +912,14 @@ def create_ai_provider(config: Dict[str, Any]) -> AIProvider:
 
 
 def count_chinese_chars(text: str) -> int:
-    """统计中文字符数（不含标点和空格）"""
+    """Chinese characters counted (without punctuation and spaces)"""
     # 匹配中文字符
     chinese_chars = re.findall(r'[\u4e00-\u9fff]', text)
     return len(chinese_chars)
 
 
 def save_chapter_content(chapter_file: Path, content: str, config: Dict[str, Any]):
-    """保存章节内容到文件"""
+    """Save section content to file"""
     # 确保目录存在
     chapter_file.parent.mkdir(parents=True, exist_ok=True)
     
@@ -947,7 +945,7 @@ def save_chapter_content(chapter_file: Path, content: str, config: Dict[str, Any
         new_content += scene_match.group(0) + "\n\n"
     
     # 添加生成的正文
-    new_content += "## 正文\n\n"
+    new_content += "# # Body\ n\ n"
     new_content += content.strip()
     new_content += "\n"
     
@@ -961,7 +959,7 @@ def save_chapter_content(chapter_file: Path, content: str, config: Dict[str, Any
 
 
 def update_memory_files(project_root: Path, chapter_no: int, content: str, context: ProjectContext):
-    """更新记忆文件"""
+    """Update Memory File"""
     memory_dir = project_root / "00_memory"
     
     # 更新章节摘要
@@ -1008,10 +1006,9 @@ def _run_humanizer_pass(
     detection: Dict[str, Any],
     system_prompt: str,
 ) -> str:
-    """基于检测结果生成二次润色 prompt，调用 AI 执行，返回润色后文本。
+    """Generate a secondary finishing prompt based on the test results, call AI to execute, and return the finishing text.
 
-    只针对检测到的具体问题生成精准修改指令，不做大规模重写。
-    """
+    Generate precise modification instructions only for specific problems detected, and do not do large-scale rewriting."""
     hits: List[str] = []
 
     # 收集高频 AI 词汇命中
@@ -1041,7 +1038,7 @@ def _run_humanizer_pass(
     hit_summary = "\n".join(f"- {h}" for h in hits)
 
     humanizer_prompt = (
-        "以下是一段小说正文，需要针对以下具体问题进行最小化修改：\n\n"
+        "The following is the body of a novel that needs to be minimized for the following specific issues:\ n\ n"
         f"{hit_summary}\n\n"
         "修改规则：\n"
         "1. 只改有问题的部分，其余文字一字不动\n"
@@ -1053,9 +1050,9 @@ def _run_humanizer_pass(
     )
 
     humanizer_system = (
-        "你是专业文字编辑。接收小说正文和修改清单，"
-        "执行最小化精准修改后输出完整正文。"
-        "不输出任何说明、注释或修改记录，只输出修改后的小说正文。"
+        "You're a professional text editor.Receive the body of the novel and a list of modifications, "
+        "Outputs the full body after performing a minimized precision modification."
+        "Do not output any descriptions, comments or modification records, only the modified novel body."
     )
 
     try:
@@ -1071,18 +1068,17 @@ def write_chapter(
     dry_run: bool = False,
     context_window: int = 5,
 ) -> Dict[str, Any]:
-    """自动写作入口，可被外部脚本（如 auto_novel_writer.py）调用。
+    """An automatic writing portal that can be called by external scripts such as auto_novel_writer.py.
 
     Args:
-        project_root: 项目根目录
-        chapter_file: 章节文件路径（None 则自动检测）
-        config_overrides: 配置覆盖
-        dry_run: 只生成提示词不调用 AI
-        context_window: 上下文窗口大小
+        project_root: The root of the project
+        chapter_file: chapter file path (auto-detect for None)
+        config_overrides: Configure overrides
+        dry_run: Generate only prompt words without calling AI
+        context_window: Context window size
 
     Returns:
-        {"ok": bool, "chapter_file": str, "chars": int, "prompt": str (if dry_run), ...}
-    """
+        {"ok": bool, "chapter_file": str, "chars": int, "prompt": str (if dry_run),...}"""
     config_manager = ConfigManager(project_root)
     config = config_manager.config
     if config_overrides:
@@ -1114,9 +1110,9 @@ def write_chapter(
                     next_no = int(match.group(1)) + 1
                     chapter_file = manuscript_dir / f"第{next_no}章-待写.md"
                 else:
-                    chapter_file = manuscript_dir / "第1章-开篇.md"
+                    chapter_file = manuscript_dir / "Chapter 1 - Opening .md"
             else:
-                chapter_file = manuscript_dir / "第1章-开篇.md"
+                chapter_file = manuscript_dir / "Chapter 1 - Opening .md"
 
     # 提取上下文
     extractor = ContextExtractor(project_root)
@@ -1219,24 +1215,22 @@ def write_chapter(
 
 
 def main():
-    """主函数"""
+    """The main function."""
     parser = argparse.ArgumentParser(
         description="小说章节自动化生成器 - 提取上下文、生成提示词、调用AI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-示例用法:
-  # 基础用法（自动生成提示词并调用AI）
-  python novel_chapter_writer.py --project-root ./my_novel
+        epilog="""Example Usage:
+  # Basic usage (automatically generates prompts and calls AI)
+  python novel_chapter_writer.py --project-root./my_novel
 
-  # 只生成提示词，不调用AI（用于手动复制到ChatGPT/Claude）
-  python novel_chapter_writer.py --project-root ./my_novel --dry-run
+  # Generate only prompts without calling AI (for manual copying to ChatGPT/Claude)
+  python novel_chapter_writer.py --project-root./my_novel --dry-run
 
-  # 指定章节文件
-  python novel_chapter_writer.py --project-root ./my_novel --chapter-file ./my_novel/03_manuscript/第5章-待写.md
+  # Specify the chapter file
+  python novel_chapter_writer.py --project-root./my_novel --chapter-file./my_novel/03_manuscript/Chapter 5 - To be written .md
 
-  # 使用Claude API
-  python novel_chapter_writer.py --project-root ./my_novel --provider anthropic --api-key YOUR_KEY
-        """
+  # Using the Claude API
+  python novel_chapter_writer.py --project-root./my_novel --provider anthropic --api-key your_key"""
     )
     
     # 必需参数
@@ -1334,9 +1328,9 @@ def main():
                     next_no = int(match.group(1)) + 1
                     chapter_file = manuscript_dir / f"第{next_no}章-待写.md"
                 else:
-                    chapter_file = manuscript_dir / "第1章-开篇.md"
+                    chapter_file = manuscript_dir / "Chapter 1 - Opening .md"
             else:
-                chapter_file = manuscript_dir / "第1章-开篇.md"
+                chapter_file = manuscript_dir / "Chapter 1 - Opening .md"
     
     print(f"[信息] 目标章节: {chapter_file}")
     

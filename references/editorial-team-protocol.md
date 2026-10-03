@@ -1,198 +1,198 @@
-# 编辑团队协议（Editorial Team Protocol）
+# Editorial Team Protocol
 
-> 对应 SKILL.md v1.0.0 Section 11
+> Corresponding to SKILL.md v1.0.0 Section 11
 
-## 设计动机
+## Design Motivation
 
-### 问题根源分析
+### Root Cause Analysis
 
-传统单 Agent 写作流程的三个根性缺陷：
+Three root-level defects of traditional single-Agent writing flow:
 
-| 问题 | 根本原因 | 典型表现 |
-|------|---------|---------|
-| AI 幻觉 | 无独立核查者；写作 Agent 自己生产、自己验证 | 凭空出现未注册的地名/人名；事件顺序错乱 |
-| 角色错乱 | 角色档案与生成内容之间没有强制对照机制 | 人物出现在错误地点；不会武功的角色突然出拳 |
-| Agent 思路污染正文 | 写作 prompt 与输出内容之间没有严格隔离层 | 分析性语句、角色定位标签、写作指令残留出现在小说正文中 |
+| Problem | Root Cause | Typical Manifestation |
+|---------|-----------|----------------------|
+| AI Hallucination | No independent checker; the writing Agent produces and verifies itself | Unregistered place names/character names appearing out of nowhere; event order disorder |
+| Character Confusion | No mandatory cross-reference mechanism between character profiles and generated content | Characters appear in wrong locations; characters without martial arts suddenly throw punches |
+| Agent Thinking Pollutes the Text | No strict isolation layer between writing prompt and output content | Analytical statements, character positioning labels, and writing instruction residuals appear in the novel text |
 
-### 解决思路
+### Solution Approach
 
-真实报社的生产流程中，每个角色都有单一职责且互相独立：
+In a real newspaper production workflow, each role has a single responsibility and operates independently:
 
 ```
-记者（写稿）→ 事实核查员（核事实）→ 文字编辑（改文字）→ 总编（发稿决策）
+Reporter (drafting) → Fact Checker (verifying facts) → Copy Editor (polishing text) → Editor-in-Chief (publishing decision)
 ```
 
-本团队模仿这一结构，将以上三个问题各自交给专职 Agent 处理。
+This team mimics this structure, assigning each of the three problems to dedicated Agents.
 
 ---
 
-## 团队角色详解
+## Team Role Details
 
-### 策划主编（planning-editor）
+### Planning Editor
 
-**核心职责**：将抽象的小说规划转化为当章可执行的 Chapter Brief
+**Core Responsibility**: Transform abstract novel planning into an executable Chapter Brief for the current chapter
 
-**关键能力**：
-- 对照 character_tracker.md 核实每个角色的当前状态后才发布 Brief
-- 发现规划文件中的矛盾时主动上报，不自行处理
-- Brief 格式严格（结构化 JSON/Markdown），确保写作特工不产生歧义
+**Key Capabilities**:
+- Verify each character's current state against `character_tracker.md` before publishing the Brief
+- Proactively report contradictions in planning documents, do not handle them independently
+- Brief format is strict (structured JSON/Markdown), ensuring the novelist Agent has no ambiguity
 
-**不做的事**：不写任何小说正文，不对规划作创意性演绎
+**Does Not Do**: Does not write any novel text, does not creatively interpret the plan
 
-### 写作特工（novelist）
+### Novelist Agent
 
-**核心职责**：根据 Chapter Brief 生成纯小说正文
+**Core Responsibility**: Generate pure novel text based on the Chapter Brief
 
-**关键能力**：
-- 输出严格隔离（`NOVEL_TEXT_START/END` 标记之间只有正文）
-- 8种入口模式轮换，从根本上消除"每章结构类似"问题
-- 系统 prompt 每3章轮换写作视角，防止单一风格固化
-- 严格遵守 Brief 中的角色状态和位置信息
+**Key Capabilities**:
+- Output strictly isolated (`NOVEL_TEXT_START/END` markers contain only the novel text)
+- 8 entry mode rotation, fundamentally eliminating the problem of "every chapter has a similar structure"
+- System prompt rotates writing perspective every 3 chapters, preventing single-style solidification
+- Strictly follow character states and location information in the Brief
 
-**不做的事**：不在正文中输出任何分析说明；不擅自修改角色设定
+**Does Not Do**: Does not output any analytical explanations in the text; does not independently modify character settings
 
-### 反AI编辑（anti-ai-editor）
+### Anti-AI Editor
 
-**核心职责**：检测并最小化修改正文中的 AI 写作痕迹
+**Core Responsibility**: Detect and minimally modify AI writing traces in the text
 
-**工作方法**（基于 humanizer 方法论）：
-- **第一遍**：全文扫描，标记7大类问题（AI高频词/弱化副词/情感直白/描写空洞/对话同质化/翻译腔/排比三连）
-- **第二遍**：针对标记问题执行最小化改动
+**Working Method** (based on humanizer methodology):
+- **Pass 1**: Full-text scan, marking 7 major categories of issues (AI high-frequency words / weakening adverbs / blunt emotion / empty description / homogenized dialogue / translation-style / trilateral parallelism)
+- **Pass 2**: Execute minimal changes targeting marked issues
 
-**改动原则**：
-- 只改有问题的部分，不动其余文字
-- 将 AI 套话改为具体行为/感官描写，不作大规模重写
-- 改动后正文长度应与原文相差不超过 10%
+**Change Principles**:
+- Only modify problematic parts, leave the rest untouched
+- Change AI stock phrases into specific actions/sensory descriptions, do not do large-scale rewriting
+- The modified text length should differ from the original by no more than 10%
 
-**不做的事**：不改变情节；不在润色后正文中插入任何注记
+**Does Not Do**: Does not change the plot; does not insert any notes in the polished text
 
-### 连载核实官（consistency-reviewer）
+### Serial Consistency Reviewer
 
-**核心职责**：发现事实性矛盾，不评价文学质量
+**Core Responsibility**: Find factual contradictions, do not evaluate literary quality
 
-**四维核查框架**：
-1. 角色位置与状态（对照 character_tracker.md）
-2. 时间线一致性
-3. 设定吃书（前后矛盾）
-4. AI 幻觉植入（未注册词汇/模板残留）
+**Four-Dimensional Verification Framework**:
+1. Character location and state (cross-reference with `character_tracker.md`)
+2. Timeline consistency
+3. Setting contradiction (contradicting earlier statements)
+4. AI hallucination implantation (unregistered words / template residuals)
 
-**输出格式**：P0（致命）/ P1（严重）/ P2（建议），每条必须注明段落位置
+**Output Format**: P0 (Fatal) / P1 (Serious) / P2 (Suggestion), each item must note the paragraph location
 
-**不做的事**：不修改正文；不自行判断规划文件中的矛盾
+**Does Not Do**: Does not modify the text; does not independently judge contradictions in planning documents
 
-### 总编辑（Claude Code 主 Agent）
+### Chief Editor (Claude Code Main Agent)
 
-**核心职责**：协调流程，汇总报告，作最终发布决策
+**Core Responsibility**: Coordinate the workflow, compile reports, make final publishing decisions
 
-**判定规则**：
-- P0 存在 → 返工（最多2次）
-- 2次返工仍有 P0 → 强制暂停，请求人工介入
-- 连续3章有条件通过 → 强制暂停，请求人工介入
-- 无 P0 → 使用润色后版本进入门禁
+**Judgment Rules**:
+- P0 exists → rework (maximum 2 times)
+- Still P0 after 2 reworks → force pause, request human intervention
+- 3 consecutive chapters conditionally passed → force pause, request human intervention
+- No P0 → use the polished version to enter gate check
 
 ---
 
-## 正文隔离协议
+## Text Isolation Protocol
 
-这是防止"Agent 思路污染正文"的核心机制。
+This is the core mechanism to prevent "Agent thinking polluting the text."
 
-### 隔离标记规范
+### Isolation Marker Specification
 
-所有 Agent 输出均须使用明确的分区标记：
+All Agent outputs must use explicit section markers:
 
 ```
 CHAPTER_BRIEF_START
-[策划主编输出内容]
+[Planning Editor output content]
 CHAPTER_BRIEF_END
 
 NOVEL_TEXT_START
-[纯小说正文，不含任何其他内容]
+[Pure novel text, no other content whatsoever]
 NOVEL_TEXT_END
 
 ANTIAICHECK_REPORT_START
-[检测报告]
+[Detection report]
 ANTIAICHECK_REPORT_END
 
 HUMANIZED_TEXT_START
-[润色后纯正文]
+[Polished pure text]
 HUMANIZED_TEXT_END
 
 CONSISTENCY_REPORT_START
-[核查报告]
+[Consistency check report]
 CONSISTENCY_REPORT_END
 
 FINAL_CHAPTER_PACKAGE_START
-[最终章节包：正文 + 元信息 + 注意事项，各部分分区清晰]
+[Final chapter package: text + metadata + notes, each section clearly delineated]
 FINAL_CHAPTER_PACKAGE_END
 ```
 
-### P0 触发器（正文中不得出现的内容）
+### P0 Triggers (Content that must not appear in the text)
 
-以下任何一项出现在 `NOVEL_TEXT` 或 `HUMANIZED_TEXT` 区域内，立即触发 P0：
+The following appearing in the `NOVEL_TEXT` or `HUMANIZED_TEXT` area immediately triggers P0:
 
-- `[` `]` 括号包裹的说明文字（如 `[此处填写具体内容]`）
-- `（注：）`、`【xxx】`标记（角色定位标签等）
-- `TODO`、`待补充`、`PLACEHOLDER` 等草稿标记
-- 分析性段落或写作思路（如"在这一段，我打算通过对话展现..."）
-- 任何以"作者注"、"编者按"开头的段落
-
----
-
-## 自由创作与规划约束的边界
-
-### 硬约束（所有 Agent 都必须遵守）
-
-- 当章情节任务必须推进
-- 本章禁区不得触碰
-- 角色的当前地理位置必须正确
-- 角色的能力边界不得违反
-- 已建立的世界观规则不得破坏
-
-### 软自由（写作特工的创作空间）
-
-- 章节入口角度：从8种模式中选取，每章不同
-- 具体场景构建方式
-- 对话的具体内容和节奏变化
-- 细节描写的选取角度
-- 段落节奏的长短安排
-- 结尾方式（由剧情自然决定，不强制钩子）
+- Explanatory text wrapped in square brackets (e.g., `[fill in specific content here]`)
+- Parenthetical notes and other markers (e.g., `(Note:)`, `【xxx】`) (character positioning labels, etc.)
+- Draft markers like `TODO`, `to be filled in`, `PLACEHOLDER`
+- Analytical paragraphs or writing thoughts (e.g., "In this paragraph, I intend to show through dialogue...")
+- Any paragraph starting with "Author's Note" or "Editor's Note"
 
 ---
 
-## 反幻觉工作流
+## Boundaries Between Free Creation and Planning Constraints
+
+### Hard Constraints (All Agents Must Follow)
+
+- The chapter's plot task must advance
+- This chapter's restricted zones must not be touched
+- The character's current geographic location must be correct
+- The character's ability boundaries must not be violated
+- Established worldbuilding rules must not be violated
+
+### Soft Freedom (Novelist Agent's Creative Space)
+
+- Chapter entry angle: select from 8 modes, each chapter different
+- Specific scene construction methods
+- Specific dialogue content and rhythm changes
+- Detail description selection angle
+- Paragraph rhythm length arrangement
+- Ending method (decided naturally by the plot, hooks not enforced)
+
+---
+
+## Anti-Hallucination Workflow
 
 ```
-写作特工生成正文
+Novelist Agent generates the text
     │
     ▼
-连载核实官核查（必须完成）
+Serial Consistency Reviewer checks (must complete)
     │
-    ├── 发现未注册词汇 → 标记为幻觉候选 → 总编辑裁定（是新设定还是幻觉）
-    ├── 发现角色错位 → P0 → 强制返工
-    └── 发现模板残留 → P0 → 强制返工
+    ├── Found unregistered words → mark as hallucination candidates → Chief Editor rules (is it a new setting or a hallucination)
+    ├── Found character misplacement → P0 → forced rework
+    └── Found template residuals → P0 → forced rework
 
-策划主编每章更新 Chapter Brief 时
+When the Planning Editor updates the Chapter Brief each chapter
     │
-    ├── 读取最新 character_tracker.md（不使用记忆中的旧数据）
-    └── 发现档案不一致 → 上报总编辑，不自行推断
+    ├── Read the latest character_tracker.md (do not use stale data from memory)
+    └── Found inconsistencies in the profile → report to Chief Editor, do not infer independently
 ```
 
 ---
 
-## 常见问题
+## Frequently Asked Questions
 
-**Q：写作特工生成的内容每次结构都一样怎么办？**
+**Q: What if the Novelist Agent's output has the same structure every time?**
 
-A：写作特工通过 8 种叙事入口模式轮换（按章节号取模），章节1用"动作切入"，章节2用"对话开场"，以此类推，8章一个完整循环。加上3种系统提示人设轮换，理论上每章有不同的写作框架。
+A: The Novelist Agent rotates through 8 narrative entry modes (by chapter number modulo). Chapter 1 uses an action-driven opening, Chapter 2 uses a dialogue opening, and so on, completing an 8-chapter full cycle. Plus 3 system prompt persona rotations, theoretically each chapter has a different writing framework.
 
-**Q：如何确保角色不会突然出现在错误地点？**
+**Q: How to ensure characters do not suddenly appear in the wrong location?**
 
-A：策划主编在生成 Chapter Brief 时，必须从 character_tracker.md 中读取每个角色的当前位置后才发布 Brief。连载核实官收到正文后独立核查。两道独立防线同时生效。
+A: The Planning Editor must read each character's current location from `character_tracker.md` before publishing the Brief. The Consistency Reviewer independently verifies after receiving the text. Both independent defenses take effect simultaneously.
 
-**Q：如果规划文件本身有矛盾怎么办？**
+**Q: What if the planning documents themselves have contradictions?**
 
-A：策划主编和连载核实官都有义务上报矛盾，但都无权自行判断哪个版本正确。总编辑将矛盾报告给用户，请求明确指示后再继续。
+A: Both the Planning Editor and Consistency Reviewer have the obligation to report contradictions, but neither has the authority to judge which version is correct. The Chief Editor reports the contradiction to the user, requesting explicit instructions before continuing.
 
-**Q：Agent 思路出现在正文里怎么办？**
+**Q: What if Agent thinking appears in the text?**
 
-A：这是 P0 级错误，无条件强制重写。写作特工的系统 prompt 明确要求：`NOVEL_TEXT_START/END` 之间只能有纯小说正文，任何非小说内容均为输出错误。
+A: This is a P0 level error, unconditionally forced to rework. The Novelist Agent's system prompt explicitly requires: between the `NOVEL_TEXT_START` and `NOVEL_TEXT_END` markers, only pure novel text is allowed. Any non-novel content is an output error.

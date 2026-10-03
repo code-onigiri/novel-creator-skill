@@ -1,33 +1,33 @@
-# 角色状态追踪器
+# Character Status Tracker
 
-> 追踪所有角色的最新状态。写前读取涉及角色，写后更新变化。
+> Track the latest status of all characters. Read before writing if characters are involved; update after writing with any changes.
 
-## 主角：{PROTAGONIST_NAME}
-- 当前境界/实力：{POWER_LEVEL}
-- 当前位置：{LOCATION}
-- 当前目标：{GOAL}
-- 持有物品/资源：{ITEMS}
-- 性格特征：{PERSONALITY}
-- 外貌特征：{APPEARANCE}
-- 关键关系：
+## Protagonist: {PROTAGONIST_NAME}
+- Current Realm/Power Level: {POWER_LEVEL}
+- Current Location: {LOCATION}
+- Current Goal: {GOAL}
+- Held Items/Resources: {ITEMS}
+- Personality Traits: {PERSONALITY}
+- Appearance Traits: {APPEARANCE}
+- Key Relationships:
   - {RELATION_1}
   - {RELATION_2}
-- 最近变化（最新3条）：
-  （尚未开始写作）
+- Recent Changes (latest 3):
+  (No writing has started yet)
 
-## 核心配角
+## Core Supporting Characters
 
 ### {CHARACTER_A_NAME}
-- 身份：{IDENTITY}
-- 与主角关系：{RELATIONSHIP}
-- 当前状态：{STATUS}
-- 性格特征：{PERSONALITY}
-- 最近出场：（尚未出场）
-- 最近变化：（无）
+- Identity: {IDENTITY}
+- Relationship with Protagonist: {RELATIONSHIP}
+- Current Status: {STATUS}
+- Personality Traits: {PERSONALITY}
+- Recent Appearance: (Not yet appeared)
+- Recent Changes: (None)
 
-<!-- 根据知识库中的人物设定继续添加 -->
+<!-- Continue adding based on character settings in the knowledge base -->
 
-## 已退场角色（存档）
-| 角色 | 退场章节 | 退场原因 | 是否可能回归 |
+## Retired Characters (Archive)
+| Character | Exit Chapter | Reason for Exit | Possible Return? |
 |------|---------|---------|------------|
-<!-- 角色死亡、离开等情况记录于此 -->
+<!-- Record character deaths, departures, etc. here -->

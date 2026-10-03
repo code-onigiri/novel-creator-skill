@@ -1,24 +1,24 @@
-# 伏笔追踪器
+# Foreshadowing Tracker
 
-> 追踪所有伏笔的生命周期。写前检查待回收，写后更新新增/回收。
-> 伏笔ID格式：F{卷号}-{序号}，例如 F1-001
+> Track the life cycle of all foreshadowing elements. Check for recovery before writing, update new/recycled after writing.
+> Foreshadowing ID format: F{Volume}-{Sequence}, e.g. F1-001
 
-## 🔴 紧急回收（已超期或即将到期）
-| ID | 伏笔内容 | 埋设章节 | 预期回收 | 当前章节 | 超期章数 |
+## 🔴 Urgent Recovery (Overdue or About to Expire)
+| ID | Foreshadowing Content | Planted Chapter | Expected Recovery | Current Chapter | Overdue Chapters |
 |----|---------|---------|---------|---------|---------|
-<!-- 超过预期回收章节仍未回收的伏笔 -->
+<!-- Foreshadowing not yet recovered beyond the expected recovery chapter -->
 
-## 🟡 活跃伏笔（进行中）
-| ID | 伏笔内容 | 埋设章节 | 预期回收 | 关联剧情 | 回收方式提示 |
+## 🟡 Active Foreshadowing (In Progress)
+| ID | Foreshadowing Content | Planted Chapter | Expected Recovery | Related Plot | Recovery Method Hint |
 |----|---------|---------|---------|---------|-----------|
-<!-- 已埋设、尚未回收的伏笔 -->
+<!-- Planted but not yet recovered foreshadowing -->
 
-## 🟢 长线伏笔（可延后）
-| ID | 伏笔内容 | 埋设章节 | 预期回收 | 备注 |
+## 🟢 Long-term Foreshadowing (Can Be Deferred)
+| ID | Foreshadowing Content | Planted Chapter | Expected Recovery | Notes |
 |----|---------|---------|---------|------|
-<!-- 跨卷的长线伏笔 -->
+<!-- Long-term foreshadowing spanning multiple volumes -->
 
-## ✅ 已回收伏笔（存档）
-| ID | 伏笔内容 | 埋设章节 | 回收章节 | 回收方式 | 效果评估 |
+## ✅ Recovered Foreshadowing (Archived)
+| ID | Foreshadowing Content | Planted Chapter | Recovery Chapter | Recovery Method | Effect Evaluation |
 |----|---------|---------|---------|---------|---------|
-<!-- 已成功回收的伏笔 -->
+<!-- Successfully recovered foreshadowing -->

@@ -1,13 +1,13 @@
-# 剧情种子（模糊输入转结构化）
+# Story Seed (Fuzzy Input → Structured)
 
-## 一句话脑洞
+## One-Line Concept
 
-## 题材与目标读者
+## Genre & Target Audience
 
-## 主角（起点状态）
+## Protagonist (Starting State)
 
-## 核心冲突（当前最模糊也要先写）
+## Core Conflict (Write even if still vague)
 
-## 预期结局（可暂定）
+## Expected Ending (Tentative is OK)
 
-## 禁区（不想写的内容）
+## Forbidden Topics (Content I Don't Want to Write)

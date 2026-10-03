@@ -1,16 +1,16 @@
-# 知识图谱数据结构规范
+# Knowledge Graph Data Structure Specification
 
-> 状态：规划中（Phase 2 实现）
+> Status: Planned (Phase 2 Implementation)
 
-## 设计目标
+## Design Goal
 
-用图结构（节点+边+版本）替代当前的平面文件，确保300万字规模下人物、事件、设定的一致性可机器校验。
+Replace the current flat file structure with a graph structure (nodes + edges + versions) to ensure machine-verifiable consistency of characters, events, and worldbuilding at the 3-million-character scale.
 
-## 核心数据结构
+## Core Data Structures
 
-### 图谱文件
+### Graph File
 
-存储位置：`00_memory/story_graph.json`
+Storage location: `00_memory/story_graph.json`
 
 ```json
 {
@@ -22,55 +22,55 @@
 }
 ```
 
-### 节点类型
+### Node Types
 
-| 类型 | 说明 | 必需字段 |
-|------|------|---------|
-| `character` | 角色 | name, role, traits, status, first_appear |
-| `location` | 地点 | name, description, region |
-| `faction` | 势力/组织 | name, purpose, leader, members |
-| `item` | 重要物品 | name, description, owner, significance |
-| `event` | 关键事件 | name, chapter, participants, outcome |
-| `foreshadow` | 伏笔 | name, planted_chapter, status(planted/recalled/expired), target_chapter |
-| `worldrule` | 世界观规则 | name, description, constraints |
-| `power_system` | 力量体系 | name, levels, rules |
+| Type | Description | Required Fields |
+|------|-------------|----------------|
+| `character` | Character | name, role, traits, status, first_appear |
+| `location` | Location | name, description, region |
+| `faction` | Faction/Organization | name, purpose, leader, members |
+| `item` | Important Item | name, description, owner, significance |
+| `event` | Key Event | name, chapter, participants, outcome |
+| `foreshadow` | Foreshadowing | name, planted_chapter, status(planted/recalled/expired), target_chapter |
+| `worldrule` | Worldbuilding Rule | name, description, constraints |
+| `power_system` | Power System | name, levels, rules |
 
-### 节点 Schema（示例：角色）
+### Node Schema (Example: Character)
 
 ```json
 {
   "id": "char_001",
   "type": "character",
-  "name": "李承乾",
-  "aliases": ["太子", "大郎"],
+  "name": "Li Chengqian",
+  "aliases": ["Crown Prince", " Eldest"],
   "role": "protagonist",
-  "traits": ["聪明", "谨慎", "有现代知识"],
+  "traits": ["Intelligent", "Cautious", "Has modern knowledge"],
   "status": "alive",
-  "power_level": "无武力",
+  "power_level": "No physical combat ability",
   "first_appear": 1,
   "last_updated": 42,
-  "arc": "从迷茫穿越者到治国明君",
-  "current_goal": "推动均田制改革",
-  "secrets": ["穿越者身份"]
+  "arc": "From a confused transmigrator to a wise ruler",
+  "current_goal": "Promote equal-field system reform",
+  "secrets": ["Transmigrator identity"]
 }
 ```
 
-### 边类型
+### Edge Types
 
-| 类型 | 说明 | 方向性 |
-|------|------|--------|
-| `ally` | 同盟 | 双向 |
-| `enemy` | 敌对 | 双向 |
-| `mentor` | 师徒 | 单向 |
-| `subordinate` | 从属 | 单向 |
-| `romantic` | 情感 | 双向 |
-| `belongs_to` | 归属(角色→势力) | 单向 |
-| `located_at` | 位于(角色/事件→地点) | 单向 |
-| `triggers` | 引发(事件→事件) | 单向 |
-| `foreshadows` | 铺垫(伏笔→事件) | 单向 |
-| `owns` | 持有(角色→物品) | 单向 |
+| Type | Description | Directionality |
+|------|-------------|----------------|
+| `ally` | Ally | Bidirectional |
+| `enemy` | Hostile | Bidirectional |
+| `mentor` | Mentor-Student | Unidirectional |
+| `subordinate` | Subordinate | Unidirectional |
+| `romantic` | Romantic | Bidirectional |
+| `belongs_to` | Belongs to (character → faction) | Unidirectional |
+| `located_at` | Located at (character/event → location) | Unidirectional |
+| `triggers` | Triggers (event → event) | Unidirectional |
+| `foreshadows` | Foreshadows (foreshadow → event) | Unidirectional |
+| `owns` | Owns (character → item) | Unidirectional |
 
-### 边 Schema
+### Edge Schema
 
 ```json
 {
@@ -80,65 +80,65 @@
   "target": "char_003",
   "strength": 0.8,
   "since_chapter": 5,
-  "description": "太子提拔魏征，结为政治同盟",
+  "description": "Crown Prince promotes Wei Zheng, forming a political alliance",
   "evolution": [
-    {"chapter": 5, "strength": 0.3, "note": "初次合作"},
-    {"chapter": 15, "strength": 0.8, "note": "共渡危机后信任加深"}
+    {"chapter": 5, "strength": 0.3, "note": "Initial cooperation"},
+    {"chapter": 15, "strength": 0.8, "note": "Trust deepened after surviving a crisis together"}
   ]
 }
 ```
 
-### 时间线条目
+### Timeline Entry
 
 ```json
 {
   "chapter": 12,
   "in_story_date": "贞观三年秋",
   "events": ["event_005", "event_006"],
-  "location_changes": {"char_001": "长安→洛阳"},
+  "location_changes": {"char_001": "Chang'an → Luoyang"},
   "status_changes": {"char_002": {"status": "injured"}}
 }
 ```
 
-## 操作协议
+## Operation Protocol
 
-### 每章写后（自动）
+### After Each Chapter (Automatic)
 
-1. 从新章节提取新增/变更的节点和边
-2. 更新现有节点的 `last_updated` 和状态字段
-3. 追加时间线条目
-4. 校验边的一致性（不能出现已死亡角色参与新事件等）
+1. Extract new/changed nodes and edges from the new chapter
+2. Update `last_updated` and status fields of existing nodes
+3. Append timeline entry
+4. Validate edge consistency (e.g., dead characters cannot participate in new events)
 
-### 改纲时（级联）
+### During Outline Revision (Cascade)
 
-1. 标记受影响的节点和边
-2. 计算影响范围（几度关联）
-3. 生成级联更新报告
-4. 用户确认后批量更新
+1. Mark affected nodes and edges
+2. Calculate impact scope (degree of association)
+3. Generate cascade update report
+4. Batch update after user confirmation
 
-### 一致性校验（门禁集成）
+### Consistency Validation (Gate Check Integration)
 
-在 `/检查一致性` 步骤中，增加图谱校验：
-- 角色状态与图谱是否一致
-- 地点移动是否合理（无瞬移）
-- 伏笔是否超期未回收
-- 关系强度变化是否有叙事支撑
+Add graph validation to the `/check-consistency` step:
+- Whether character states are consistent with the graph
+- Whether location movements are reasonable (no teleportation)
+- Whether foreshadowing has expired without being resolved
+- Whether changes in relationship strength have narrative support
 
-## 脚本入口（规划）
+## Script Entry Points (Planned)
 
 ```bash
-# 初始化图谱
-python3 scripts/story_graph_builder.py init --project-root <目录>
+# Initialize graph
+python3 scripts/story_graph_builder.py init --project-root <directory>
 
-# 章后更新图谱
-python3 scripts/story_graph_updater.py update --project-root <目录> --chapter <章节文件>
+# Update graph after chapter
+python3 scripts/story_graph_updater.py update --project-root <directory> --chapter <chapter file>
 
-# 图谱一致性校验
-python3 scripts/story_graph_updater.py validate --project-root <目录>
+# Graph consistency validation
+python3 scripts/story_graph_updater.py validate --project-root <directory>
 
-# 改纲级联分析
-python3 scripts/story_graph_updater.py cascade --project-root <目录> --changes <变更描述>
+# Outline revision cascade analysis
+python3 scripts/story_graph_updater.py cascade --project-root <directory> --changes <change description>
 
-# 导出可视化（Mermaid格式）
-python3 scripts/story_graph_builder.py export --project-root <目录> --format mermaid
+# Export visualization (Mermaid format)
+python3 scripts/story_graph_builder.py export --project-root <directory> --format mermaid
 ```

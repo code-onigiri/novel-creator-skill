@@ -1,118 +1,118 @@
-# 风格锚点
+# Style Anchor
 
-> 锚定写作风格，防止AI风格漂移。建库时从仿写分析中提取，后续每10章校准一次。
+> Lock in the writing style to prevent AI style drift. Extracted from imitation analysis during database creation, calibrated every 10 chapters thereafter.
 
-## 风格DNA
+## Style DNA
 
-### 叙事视角
-- **人称**：第三人称有限 <!-- 第一人称/第三人称有限/第三人称全知 -->
-- **叙事距离**：中等 <!-- 贴近/中等/远观 -->
-- **时态**：过去式 <!-- 过去式/现在式 -->
+### Narrative Perspective
+- **Point of View**: Third-person limited <!-- First person / Third-person limited / Third-person omniscient -->
+- **Narrative Distance**: Medium <!-- Close / Medium / Distant -->
+- **Tense**: Past tense <!-- Past tense / Present tense -->
 
-### 句式特征
-- **平均句长**：24字
-- **长短句比例**：3:7 <!-- 例如 3:7（长:短）-->
-- **段落平均长度**：4行
-- **对话占比**：45%
+### Sentence Characteristics
+- **Average Sentence Length**: 24 characters
+- **Long-to-short sentence ratio**: 3:7 <!-- e.g. 3:7 (long:short) -->
+- **Average Paragraph Length**: 4 lines
+- **Dialogue Ratio**: 45%
 
-### 语言风格
-- **用词倾向**：口语与书面混合 <!-- 口语化/书面化/混合 -->
-- **修辞密度**：中 <!-- 低/中/高 -->
-- **感官偏好**：视觉为主 <!-- 视觉为主/听觉为主/多感官 -->
-- **幽默程度**：适中 <!-- 无/偶尔/频繁 -->
+### Language Style
+- **Diction Tendency**: Colloquial and literary mixed <!-- Colloquial / Literary / Mixed -->
+- **Rhetorical Density**: Medium <!-- Low / Medium / High -->
+- **Sensory Preference**: Visual dominant <!-- Visual dominant / Auditory dominant / Multi-sensory -->
+- **Humor Level**: Moderate <!-- None / Occasional / Frequent -->
 
-## 风格样本（3-5段）
+## Style Samples (3-5 paragraphs)
 
-> 从已写章节或目标风格中提取最能代表风格的段落。
+> Extract the paragraphs that best represent the style from already-written chapters or target style.
 
-### 样本1：动作/战斗场景
+### Sample 1: Action/Combat Scene
 ```
-（从已写章节中提取）
-```
-
-### 样本2：日常/对话场景
-```
-（从已写章节中提取）
+(Extracted from already-written chapters)
 ```
 
-### 样本3：心理/内心独白
+### Sample 2: Daily Life/Dialogue Scene
 ```
-（从已写章节中提取）
-```
-
-### 样本4：环境/氛围描写
-```
-（从已写章节中提取）
+(Extracted from already-written chapters)
 ```
 
-## 角色对话画像
+### Sample 3: Psychological/Inner Monologue
+```
+(Extracted from already-written chapters)
+```
 
-> 每个核心角色的说话方式特征。
+### Sample 4: Environment/Atmosphere Description
+```
+(Extracted from already-written chapters)
+```
 
-### 主角
-- **口头禅**：{CATCHPHRASE}
-- **语气特征**：{TONE} <!-- 例如：随意、带点痞气、偶尔冒脏话 -->
-- **说话习惯**：{HABIT} <!-- 例如：喜欢反问、常用短句、爱用比喻 -->
-- **称呼方式**：{ADDRESS} <!-- 例如：管师父叫"老头子"，管朋友叫"兄弟" -->
-- **情绪变化时**：{EMOTION_SHIFT} <!-- 例如：生气时变沉默、紧张时话变多 -->
-- **示例对话**：
-  - 日常："{DAILY_EXAMPLE}"
-  - 愤怒："{ANGRY_EXAMPLE}"
-  - 感动："{MOVED_EXAMPLE}"
+## Character Dialogue Profile
 
-### 核心配角
-- **口头禅**：
-- **语气特征**：
-- **说话习惯**：
-- **称呼方式**：
-- **情绪变化时**：
-- **示例对话**：
+> Speaking characteristics of each core character.
 
-<!-- 根据知识库中的核心角色继续添加 -->
+### Protagonist
+- **Catchphrase**: {CATCHPHRASE}
+- **Tone Characteristics**: {TONE} <!-- e.g. Casual, slightly rebellious, occasionally uses profanity -->
+- **Speaking Habits**: {HABIT} <!-- e.g. Likes to counter-question, often uses short sentences, loves metaphors -->
+- **Forms of Address**: {ADDRESS} <!-- e.g. Calling master "old man", calling friends "brother" -->
+- **When emotions change**: {EMOTION_SHIFT} <!-- e.g. Becomes silent when angry, talks more when nervous -->
+- **Example Dialogue**:
+  - Daily: "{DAILY_EXAMPLE}"
+  - Angry: "{ANGRY_EXAMPLE}"
+  - Moved: "{MOVED_EXAMPLE}"
 
-## 情感节奏图
+### Core Supporting Characters
+- **Catchphrase**:
+- **Tone Characteristics**:
+- **Speaking Habits**:
+- **Forms of Address**:
+- **When emotions change**:
+- **Example Dialogue**:
 
-> 追踪全书情感曲线，确保节奏张弛有度。
+<!-- Continue adding based on core characters from the knowledge base -->
 
-### 节奏规则
-- **连续高潮上限**：不超过2章
-- **低谷缓冲**：高潮后至少1章缓冲
-- **节奏模式**：升-升-爆-缓 <!-- 例如：升-升-爆-缓-升-爆 -->
+## Emotional Rhythm Graph
 
-### 章节情感标记
-| 章节 | 情感基调 | 紧张度(1-10) | 节奏类型 | 备注 |
+> Track the emotional curve of the entire book to ensure rhythm has proper tension and release.
+
+### Rhythm Rules
+- **Maximum consecutive climaxes**: No more than 2 chapters
+- **Valley buffer**: At least 1 chapter buffer after a climax
+- **Rhythm Pattern**: Rise-Rise-Peak-Relief <!-- e.g. Rise-Rise-Peak-Relief-Rise-Peak -->
+
+### Chapter Emotional Markers
+| Chapter | Emotional Tone | Tension (1-10) | Rhythm Type | Notes |
 |------|---------|-------------|---------|------|
-<!-- 每章写完后追加 -->
+<!-- Append after each chapter is written -->
 
-### 近期节奏趋势
+### Recent Rhythm Trends
 ```
-（用简单的文字描述近5章的节奏走势）
-最近5章节奏：缓→升→升→爆→缓
-下一章建议：可以开始新的上升线
+(Describe the rhythm trend of the last 5 chapters in simple text)
+Recent 5-chapter rhythm: Relief→Rise→Rise→Peak→Relief
+Next chapter suggestion: Can start a new rising line
 ```
 
-## 禁忌清单（去AI化红线）
+## Taboo List (Anti-AI Red Lines)
 
-> 明确禁止出现的AI感表达。
+> AI-sounding expressions that are explicitly prohibited.
 
-### 禁止句式
-1. "不禁XXX" 系列（不禁感叹、不禁想到）
-2. "仿佛XXX一般" 的过度使用
-3. "映入眼帘"
-4. "宛如"连续使用超过2次/章
-5. "心中暗道"超过3次/章
-<!-- 根据实际写作积累添加 -->
+### Prohibited Sentence Patterns
+1. "Can't help but XXX" series (can't help but admire, can't help but think)
+2. Overuse of "as if XXX"
+3. "Come into view"
+4. "As if" used consecutively more than 2 times per chapter
+5. "Silently thought in heart" more than 3 times per chapter
+<!-- Add based on actual writing experience -->
 
-### 禁止词汇
-| 禁止词 | 替代方案 | 原因 |
+### Prohibited Words
+| Prohibited Word | Alternative | Reason |
 |--------|---------|------|
-| 踱步 | 走来走去/来回走 | AI高频词 |
-| 低眉顺眼 | 具体描写表情动作 | AI模板化 |
-| 不由得 | 删除或改写 | AI高频词 |
-<!-- 根据实际写作积累添加 -->
+| Pace back and forth | Walk around / Walk back and forth | AI high-frequency word |
+| Lower eyebrows and comply | Describe facial expressions and actions specifically | AI template |
+| Can't help but | Delete or rewrite | AI high-frequency word |
+<!-- Add based on actual writing experience -->
 
-## 风格校准记录
+## Style Calibration Records
 
-| 校准章节 | 偏离项 | 具体描述 | 修正措施 |
+| Calibration Chapter | Deviation Items | Specific Description | Correction Measures |
 |---------|--------|---------|---------|
-<!-- 每10章校准一次，记录发现的风格偏离 -->
+<!-- Calibrate every 10 chapters, record discovered style deviations -->

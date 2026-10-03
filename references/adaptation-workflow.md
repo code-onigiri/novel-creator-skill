@@ -1,96 +1,96 @@
-# 小说仿写与魔改工作流
+# Novel Imitation & Rewriting Workflow
 
-> 能力状态：`[部分实现]`。`/拆书` 和 `/仿写` 命令已定义，风格提取脚本已就位。联网自动查询小说信息、引导式魔改、新知识图谱生成的完整链路待补全。
+> Capability status: `[Partially Implemented]`. `/deconstruct-book` and `/imitate` commands are defined, style extraction script is in place. The complete chain of automatic online novel info query, guided rewriting, and new knowledge graph generation needs to be completed.
 
-## 目标
+## Goal
 
-用户提供一部已有小说（文本或名称），系统自动拆解其结构、提取可复用模式，引导用户魔改为一部全新作品，生成新的大纲和知识库，然后进入全篇写作流程。
+The user provides an existing novel (text or name), and the system automatically deconstructs its structure, extracts reusable patterns, guides the user to rewrite it into a brand-new work, generates a new outline and knowledge base, then enters the full writing workflow.
 
-## 完整工作流
+## Complete Workflow
 
-### Phase 1: 信息获取
+### Phase 1: Information Gathering
 
-**用户提供文本时：**
-直接进入 Phase 2。
+**When the user provides text:**
+Proceed directly to Phase 2.
 
-**用户只提供小说名称时：**
-1. 联网查询小说基本信息（题材、主要角色、核心剧情、评价）
-2. 搜索相关的拆书分析、读者评价
-3. 汇总为结构化素材供后续分析
+**When the user provides only the novel name:**
+1. Search online for basic novel info (genre, main characters, core plot, reviews)
+2. Search for related book deconstruction analyses and reader reviews
+3. Summarize into structured material for subsequent analysis
 
-脚本入口（规划）：
+Script entry point (planned):
 ```bash
-python3 scripts/research_agent.py plan --genre <题材> --topic "<小说名称> 拆书分析" --depth standard
+python3 scripts/research_agent.py plan --genre <genre> --topic "<novel name> book deconstruction analysis" --depth standard
 ```
 
-### Phase 2: 拆书分析（`/拆书`）
+### Phase 2: Book Deconstruction Analysis (`/deconstruct-book`)
 
-对原作进行四维度拆解：
+Deconstruct the original work across four dimensions:
 
-| 维度 | 分析内容 |
-|------|---------|
-| 金手指/设定 | 主角的核心优势、力量体系、世界观独特性 |
-| 爽点机制 | 打脸节奏、奇遇频率、升级反馈、信息差利用 |
-| 人设骨架 | 主角弧线、配角功能、反派动机、角色关系网 |
-| 钩子与节奏 | 开篇钩子、章末悬念模式、节奏曲线、伏笔密度 |
+| Dimension | Analysis Content |
+|-----------|-----------------|
+| Golden Finger / Setting | The protagonist's core advantage, power system, worldbuilding uniqueness |
+| Payoff Mechanism | Face-slapping rhythm, lucky encounter frequency, level-up feedback, information asymmetry utilization |
+| Character Skeleton | Protagonist character arc, supporting character functions, antagonist motivation, character relationship network |
+| Hooks & Rhythm | Opening hook, end-of-chapter suspense pattern, rhythm curve, foreshadowing density |
 
-输出：结构化拆书报告。
+Output: Structured book deconstruction report.
 
-### Phase 3: 引导式魔改
+### Phase 3: Guided Rewriting
 
-这是核心的创造性环节，系统引导用户逐步偏离原作：
+This is the core creative step, where the system guides the user to gradually deviate from the original work:
 
-**第1轮：保留什么**
-- "原作最吸引你的是什么？你想保留哪些元素？"
-- 用户选择保留的核心设定（如力量体系、时代背景）
+**Round 1: What to Keep**
+- "What is most attractive about the original work? What elements do you want to keep?"
+- User selects core settings to keep (such as power system, era background)
 
-**第2轮：替换什么**
-- "如果把主角换成完全不同的人，你会怎么设定？"
-- "如果把故事搬到另一个时代/世界，你会选哪里？"
-- 引导用户替换角色、背景、核心冲突
+**Round 2: What to Replace**
+- "If you replaced the protagonist with a completely different person, how would you set it up?"
+- "If you moved the story to another era/world, where would you choose?"
+- Guide the user to replace characters, background, core conflict
 
-**第3轮：反转什么**
-- "原作中有哪些你觉得可以反着来的设定？"
-- 引导用户进行核心翻转（如：反派变主角、失败结局变开局）
+**Round 3: What to Reverse**
+- "What settings in the original work do you think could be reversed?"
+- Guide the user to make core flips (e.g., antagonist becomes protagonist, failure ending becomes opening)
 
-**第4轮：升级什么**
-- "原作哪里你觉得不够好？如果你来写会怎么改？"
-- 联网搜索同题材其他作品的优秀做法
+**Round 4: What to Upgrade**
+- "Where in the original do you think it's not good enough? If you wrote it, how would you change it?"
+- Search online for good practices in other works of the same genre
 
-**兜底**：用户在任何轮次说"不知道"时，基于拆书报告自动生成 2-3 个魔改方案供选择。
+**Fallback**: When the user says "I don't know" at any round, automatically generate 2-3 rewriting options based on the deconstruction report for selection.
 
-### Phase 4: 新大纲与知识库生成
+### Phase 4: New Outline & Knowledge Base Generation
 
-基于魔改结果：
-1. 生成新的 `novel_plan.md`（百万字路线图）
-2. 初始化知识图谱（`story_graph.json`）
-3. 建立知识库骨架（世界观、角色、势力）
-4. 生成首章占位文件
+Based on the rewriting results:
+1. Generate a new `novel_plan.md` (million-word roadmap)
+2. Initialize knowledge graph (`story_graph.json`)
+3. Establish the knowledge base skeleton (worldbuilding, characters, factions)
+4. Generate first chapter placeholder file
 
-### Phase 5: 进入写作流程
+### Phase 5: Enter Writing Workflow
 
-从 Phase 4 的产出物开始，进入标准写作流程：
-- 半自动：`/继续写` 逐章推进
-- 全自动：`/一键写书` 自动调度
+Starting from Phase 4's output, enter the standard writing workflow:
+- Semi-automatic: `/continue-write` advances chapter by chapter
+- Fully automatic: `/one-click-writing` auto-schedules
 
-## 与风格系统的集成
+## Integration with the Style System
 
-在 Phase 2 的拆书分析中，自动执行 `/风格提取`：
-1. 从原作样章中提取风格指纹
-2. 在 Phase 3 中引导用户确认：保留原作风格、混合风格、还是选择全新风格
-3. 确认结果写入项目的 `style_anchor.md`
+In Phase 2's book deconstruction analysis, automatically execute `/style-extract`:
+1. Extract style fingerprint from the original work's sample chapters
+2. In Phase 3, guide the user to confirm: keep original style, mixed style, or choose a completely new style
+3. Confirmation result is written to the project's `style_anchor.md`
 
-## 脚本入口
+## Script Entry Points
 
 ```bash
-# 拆书分析（已有文本）
-# 当前通过 AI 工具直接执行 /拆书 命令
+# Book deconstruction analysis (existing text)
+# Currently executed directly via AI tool /deconstruct-book command
 
-# 风格提取
+# Style extraction
 python3 scripts/style_fingerprint.py \
-  --project-root <目录> --style-name "<风格名>" --sample-files <样章1> <样章2>
+  --project-root <directory> --style-name "<style name>" --sample-files <sample1> <sample2>
 ```
 
-## 参考文档导航中的位置
+## Position in Reference Document Navigation
 
-用户说"帮我仿写一部小说"或"我想参考XX来写"时，引导到本文档。
+When the user says "help me imitate a novel" or "I want to reference XX to write," guide them to this document.

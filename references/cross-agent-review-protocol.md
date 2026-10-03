@@ -1,137 +1,137 @@
-# 跨Agent双智能体审核协议
+# Cross-Agent Dual-Agent Review Protocol
 
-> 状态：规划中（Phase 3 实现）
+> Status: Planned (Phase 3 Implementation)
 
-## 设计目标
+## Design Goal
 
-引入独立的外部 Agent 作为审稿官，避免"自己写自己审"的盲区。通过不同 AI 工具的交叉审核，提升质量把关可靠性。
+Introduce an independent external Agent as a reviewer to avoid the blind spot of "reviewing your own writing." Cross-validation through different AI tools improves quality assurance reliability.
 
-## 审核模式
+## Review Modes
 
-### 模式一：逐章审核（默认）
+### Mode 1: Chapter-by-Chapter Review (Default)
 
-每完成一个章节且通过内部门禁后，自动调用外部 Agent 审核。
+After completing a chapter and passing internal gate checks, automatically invoke an external Agent for review.
 
-### 模式二：批处理审核（推荐长篇使用）
+### Mode 2: Batch Review (Recommended for Long Works)
 
-每完成 10 章后暂停，将 10 章打包发给外部审核官进行批量审核。批处理能发现跨章节的节奏和一致性问题。
+After every 10 chapters, pause, package the 10 chapters, and send them to an external reviewer for batch review. Batch processing can identify cross-chapter pacing and consistency issues.
 
-## Agent 路由规则
+## Agent Routing Rules
 
-| 写作工具 | 审核工具 | 原因 |
-|---------|---------|------|
-| Claude Code | Codex | 不同模型视角，避免同源偏见 |
-| OpenCode | Claude Code | 交叉验证 |
-| Codex | Claude Code | 交叉验证 |
-| Gemini CLI | Claude Code | 交叉验证 |
+| Writing Tool | Review Tool | Reason |
+|-------------|-------------|--------|
+| Claude Code | Codex | Different model perspective, avoids same-source bias |
+| OpenCode | Claude Code | Cross-validation |
+| Codex | Claude Code | Cross-validation |
+| Gemini CLI | Claude Code | Cross-validation |
 
-如果外部工具不可用，降级为：使用同一工具但切换到不同的 system prompt（严苛审稿官人设）。
+If the external tool is unavailable, downgrade: use the same tool but switch to a different system prompt (strict reviewer persona).
 
-## 审核官人设
-
-```
-你是一位拥有十年网文阅读经验、对设定极其敏感的资深编辑。
-你的唯一任务就是找茬。你绝不会说"写得不错"——你只关注问题。
-你对以下问题零容忍：
-- 时间线错乱和空间瞬移
-- 设定吃书（前后矛盾）
-- 历史/专业常识错误
-- 节奏拖沓或爽点缺失
-- AI味过重（翻译腔、过度总结、缺乏人物性格差异的对话）
-```
-
-## 三维度结构化审核报告
-
-审核官必须输出标准格式的"体检报告"：
-
-### 维度一：逻辑与连续性硬伤
-
-- 时间线错乱（"第12章主角在长安，第14章无赶路描写就到了洛阳"）
-- 空间瞬移
-- 设定吃书（"第5章说主角不会武功，第20章突然一掌劈开桌子"）
-- 角色状态矛盾
-- 历史/专业常识错误
-
-每条标注：章节号、具体位置、严重等级（P0致命/P1严重/P2建议）
-
-### 维度二：阅读体验与节奏把控
-
-- 连续多章无核心冲突
-- 爽点密度是否达标（按题材标准）
-- 是否存在"水字数"段落
-- 情绪曲线是否合理（不能一直高潮也不能一直平淡）
-- 章末钩子质量评分
-
-### 维度三：文笔去AI化
-
-- 翻译腔检测（"不仅...而且"、"值得注意的是"、"事实上"等高频AI用词）
-- 过度总结（"这一天发生了很多事"而非具体展开）
-- 对话同质化（所有角色说话风格一样）
-- 描写空洞（"美丽的风景"而非具体画面）
-- 情感直白（"他很伤心"而非通过行为展现）
-
-## 反馈-修正闭环
+## Reviewer Persona
 
 ```
-写作Agent → 内部门禁(通过) → 外部审核Agent
-                                    ↓
-                              审核报告生成
-                                    ↓
-                         ┌─ P0问题存在 → 强制重写问题段落
-                         ├─ 仅P1/P2 → 用户决定：手动微调 or 自动修正
-                         └─ 无问题 → 继续下一章
-                                    ↓
-                              重写后自审
-                                    ↓
-                         再次提交外部审核
-                                    ↓
-                         (最多N轮，防止死循环)
+You are a senior editor with ten years of web novel reading experience and extreme sensitivity to worldbuilding.
+Your sole task is to find faults. You will never say "well written" — you only focus on problems.
+You have zero tolerance for the following:
+- Timeline disorders and spatial teleportation
+- Setting contradictions (contradicting earlier settings)
+- Historical/professional common knowledge errors
+- Pacing dragged out or payoff missing
+- Too much AI texture (translation-style, over-summarizing, dialogue lacking character differentiation)
 ```
 
-## 防死循环机制
+## Three-Dimension Structured Review Report
 
-这是最关键的设计点：
+The reviewer must output a standard-format "physical exam report":
 
-1. **最大审核轮次**：单章最多 3 轮外部审核
-2. **收敛判定**：如果第2轮和第3轮的 P0 问题相同（即修不好），自动停机
-3. **降级策略**：达到轮次上限后：
-   - 记录未解决问题到 `04_editing/unresolved_issues.md`
-   - 标记该章为"有条件通过"
-   - 继续下一章写作，不阻塞
-   - 在下次批处理审核时一并复查
-4. **人工兜底**：连续 3 章"有条件通过"时，强制暂停并请求用户介入
+### Dimension 1: Logic & Continuity Hard Injuries
 
-## 批处理审核（每10章）
+- Timeline disorder ("Protagonist in Chang'an in Chapter 12, in Luoyang in Chapter 14 with no travel description")
+- Spatial teleportation
+- Setting contradiction ("Protagonist cannot do martial arts in Chapter 5, suddenly slams a table with one palm in Chapter 20")
+- Character state contradiction
+- Historical/professional common knowledge errors
 
-### 触发条件
+Each item marked with: chapter number, specific location, severity level (P0 fatal / P1 serious / P2 suggestion)
 
-每完成第 10/20/30/... 章时自动触发。
+### Dimension 2: Reading Experience & Pacing Control
 
-### 审核范围
+- Multiple consecutive chapters without core conflict
+- Whether payoff density meets the standard (by genre)
+- Whether there are "filler" paragraphs
+- Whether the emotional curve is reasonable (cannot be at climax forever nor flat forever)
+- End-of-chapter hook quality score
 
-除了逐章审核的三个维度外，批处理额外检查：
-- 10章跨度内的节奏曲线是否合理
-- 支线推进是否均衡
-- 伏笔密度是否合理（是否有积压或遗忘）
-- 角色出场频率是否符合其重要性
+### Dimension 3: Text De-AI-ing
 
-### 输出
+- Translation-style detection ("not only...but also", "it is worth noting", "in fact" and other high-frequency AI phrases)
+- Over-summarizing ("Many things happened that day" instead of specific elaboration)
+- Homogenized dialogue (all characters speak the same way)
+- Empty description ("Beautiful scenery" instead of specific imagery)
+- Blunt emotion ("He was sad" instead of shown through actions)
+
+## Feedback-Correction Loop
+
+```
+Writing Agent → Internal Gate (passed) → External Review Agent
+                                      ↓
+                                Review report generated
+                                      ↓
+                           ┌─ P0 issues exist → Force rewrite of problem paragraphs
+                           ├─ Only P1/P2 → User decides: manual adjustment or auto-fix
+                           └─ No issues → Continue to next chapter
+                                      ↓
+                                Self-review after rewriting
+                                      ↓
+                           Submit again for external review
+                                      ↓
+                           (Maximum N rounds to prevent infinite loop)
+```
+
+## Anti-Infinite-Loop Mechanism
+
+This is the most critical design point:
+
+1. **Maximum review rounds**: Maximum 3 rounds of external review per chapter
+2. **Convergence criterion**: If the P0 issues in rounds 2 and 3 are the same (i.e., unfixable), auto-stop
+3. **Degradation strategy**: After reaching the round limit:
+   - Record unresolved issues to `04_editing/unresolved_issues.md`
+   - Mark the chapter as "conditionally passed"
+   - Continue writing the next chapter, do not block
+   - Review together during next batch review
+4. **Human fallback**: When 3 consecutive chapters are "conditionally passed," force pause and request user intervention
+
+## Batch Review (Every 10 Chapters)
+
+### Trigger Condition
+
+Automatically triggered after completing chapters 10/20/30/...
+
+### Review Scope
+
+In addition to the three dimensions of chapter-by-chapter review, batch review additionally checks:
+- Whether the pacing curve is reasonable within the 10-chapter span
+- Whether subplot advancement is balanced
+- Whether foreshadowing density is reasonable (is there accumulation or forgetting)
+- Whether character appearance frequency matches their importance
+
+### Output
 
 `04_editing/batch_review_ch{start}-{end}.md`
 
-## 脚本入口（规划）
+## Script Entry Points (Planned)
 
 ```bash
-# 逐章审核
+# Chapter-by-chapter review
 python3 scripts/cross_agent_reviewer.py review \
-  --project-root <目录> --chapter-file <章节文件> \
+  --project-root <directory> --chapter-file <chapter file> \
   --reviewer codex --max-rounds 3
 
-# 批处理审核
+# Batch review
 python3 scripts/cross_agent_reviewer.py batch-review \
-  --project-root <目录> --chapter-range 1-10 \
+  --project-root <directory> --chapter-range 1-10 \
   --reviewer codex
 
-# 查看未解决问题
-python3 scripts/cross_agent_reviewer.py unresolved --project-root <目录>
+# View unresolved issues
+python3 scripts/cross_agent_reviewer.py unresolved --project-root <directory>
 ```

@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""交互式脑洞引导引擎（F1 功能支撑脚本）。
+"""Interactive Brainstorming Guidance Engine (F1 Feature Support Script).
 
-将用户模糊的故事想法通过结构化提问逐步拓展为完整小说框架，
-同时生成初始知识图谱和大纲文档。
+Gradually expands user's vague story ideas into a complete novel framework through structured questioning,
+simultaneously generating an initial knowledge graph and outline documents.
 
-该脚本不直接与用户交互（AI 层负责对话），
-而是管理引导状态和生成阶段性产出物。
+This script does not interact directly with the user (AI layer handles conversation);
+instead manages guidance state and generates phase-specific deliverables.
 
-子命令：
-1. init     — 初始化脑洞会话
-2. status   — 查看当前引导进度
-3. advance  — 推进到下一引导轮次
-4. collect  — 收集用户在某轮的回答
-5. generate — 根据收集到的信息生成最终产出物
+Subcommands:
+1. init     — Initialize brainstorming session
+2. status   — View current guidance progress
+3. advance  — Advance to next guidance round
+4. collect  — Collect user's answers in a round
+5. generate — Generate final deliverables based on collected information
 """
 
 import argparse
@@ -29,68 +29,68 @@ if str(SCRIPT_DIR) not in sys.path:
 
 from common import ensure_dir, load_json, read_text, save_json, write_text
 
-# -- 常量 ------------------------------------------------------------------
+# -- Constants --------------------------------------------------
 
 ROUND_NAMES = {
-    1: "核心种子提取",
-    2: "世界观拓展",
-    3: "角色网络构建",
-    4: "剧情骨架搭建",
-    5: "确认与收敛",
+    1: "Core Seed Extraction",
+    2: "Worldview Expansion",
+    3: "Character Network Construction",
+    4: "Plot Skeleton Construction",
+    5: "Confirmation and Convergence",
 }
 
 ROUND_PROMPTS = {
     1: [
-        "你的主角最想达成的目标是什么？最大的阻碍呢？",
-        "如果用一句话概括这本书最让人上瘾的点，你会怎么说？",
-        "故事发生在什么样的世界？和现实世界有什么不同？",
-        "这是什么情绪基调的故事？爽文、虐文、成长、还是其他？",
+        "What does your protagonist most want to achieve? What is their biggest obstacle?",
+        "If you had to summarize the most addictive point of this book in one sentence, what would you say?",
+        "What kind of world does the story take place in? How is it different from the real world?",
+        "What emotional tone does this story have? Xianxia/Immortal Cultivation, hurt-love, growth, or other?",
     ],
     2: [
-        "这个世界的力量等级/科技水平/社会结构是怎么划分的？",
-        "有没有参考过的作品或世界观？可以说说你想和它的区别。",
-        "主角所在的世界，普通人和主角之间有什么核心差距？",
+        "How are power levels/tech levels/social structure divided in this world?",
+        "Are there any reference works or worldviews? Tell how you want to differ from them.",
+        "In the world where the protagonist is, what is the core gap between ordinary people and the protagonist?",
     ],
     3: [
-        "主角的性格是什么样的？有什么明显的优点和弱点？",
-        "除了主角，谁是读者最可能喜欢的角色？为什么？",
-        "反派如果站在自己的立场，他觉得自己做的是对的吗？",
-        "主角和最重要的配角之间，有什么情感上的纠葛或冲突？",
+        "What is the protagonist's personality like? What are their obvious strengths and weaknesses?",
+        "Besides the protagonist, who is the character readers are most likely to like? Why?",
+        "If the antagonist stood on their own position, would they think what they're doing is right?",
+        "What emotional entanglements or conflicts exist between the protagonist and the most important supporting characters?",
     ],
     4: [
-        "故事大概分几个阶段？每个阶段的核心转折点是什么？",
-        "你最想写的是哪个场景或剧情？",
-        "有没有你特别不想写的内容或禁区？",
-        "你偏向快节奏爽文，还是慢热沉浸式？",
+        "How many stages is the story roughly divided into? What is the core turning point of each stage?",
+        "Which scene or plot do you most want to write?",
+        "Is there any content or forbidden zone you particularly don't want to write?",
+        "Do you prefer fast-paced Xianxia, or slow-burn immersive style?",
     ],
     5: [
-        "我整理了以上信息，请确认是否符合你的想法。",
-        "还有什么你觉得重要的信息想补充？",
-        "确认后我将生成正式大纲、知识图谱和各类文档。",
+        "I've organized the above information, please confirm if it matches your ideas.",
+        "Is there any important information you want to supplement?",
+        "After confirmation, I'll generate the formal outline, knowledge graph, and various documents.",
     ],
 }
 
 FALLBACK_OPTIONS = {
     1: {
-        "genre": ["玄幻修仙", "历史权谋", "都市异能", "科幻星际", "古言言情"],
-        "tone": ["爽文成长流", "虐心情感流", "权谋博弈流", "热血战斗流"],
-        "hook": ["主角从弱小到无敌的逆袭", "乱世中的家国情怀", "现代人穿越古代改变命运"],
+        "genre": ["Xianxia/Immortal Cultivation", "Historical Power Struggle", "Urban Supernatural", "Sci-Fi Interstellar", "Ancient Romance"],
+        "tone": ["Favorable Outcome Growth Flow", "Heartbreaking Emotion Flow", "Power Struggle Flow", "Hot-Blooded Battle Flow"],
+        "hook": ["Protagonist's rise from weak to invincible", "Family and country sentiment in turbulent times", "Modern person crosses to ancient times to change fate"],
     },
     2: {
-        "power_system": ["修炼等级体系", "异能觉醒体系", "科技武器体系", "魔法学院体系"],
-        "world_type": ["东方玄幻世界", "类明清历史", "赛博朋克未来", "西方奇幻大陆"],
+        "power_system": ["Cultivation Level System", "Ability Awakening System", "Tech Weapon System", "Magic Academy System"],
+        "world_type": ["Eastern Xianxia World", "Qing-Ming-like History", "Cyberpunk Future", "Western Fantasy Continent"],
     },
     3: {
-        "protagonist_type": ["有仇必报的强者", "温柔而坚定的守护者", "腹黑智谋型", "热血莽撞成长型"],
-        "rival_relation": ["亦敌亦友的竞争者", "曾经的挚友后来的对手", "误解产生的仇恨"],
+        "protagonist_type": ["Stronger who repays all grudges", "Gentle yet steadfast guardian", "Cunning strategist type", "Hot-blooded reckless growth type"],
+        "rival_relation": ["Rival who is both enemy and friend", "Former friend turned opponent", "Hatred born from misunderstanding"],
     },
     4: {
-        "structure": ["三幕式（起承转合）", "五卷式（升级打怪路线）", "双线并行（主角与反派视角）"],
-        "pacing": ["快节奏（每章必有爽点）", "中等节奏（三章一小高潮）", "慢热（前期铺垫扎实）"],
+        "structure": ["Three-act structure (opening-development-climax-resolution)", "Five-volume structure (level-up boss route)", "Dual parallel (protagonist and antagonist perspectives)"],
+        "pacing": ["Fast pace (must have satisfying moment every chapter)", "Medium pace (mini-climax every three chapters)", "Slow burn (solid groundwork in early parts)"],
     },
 }
 
-# -- 配置 ------------------------------------------------------------------
+# -- Configuration --------------------------------------------------
 
 @dataclass
 class IdeationConfig:
@@ -100,7 +100,7 @@ class IdeationConfig:
     default_indent: int = 2
 
 
-# -- 内部工具 ---------------------------------------------------------------
+# -- Internal Utilities --------------------------------------------------
 
 def _session_path(root: Path, cfg: IdeationConfig) -> Path:
     return root / cfg.session_rel_path
@@ -126,63 +126,63 @@ def _save_session(root: Path, session: Dict[str, Any], cfg: IdeationConfig) -> b
 
 
 def _build_idea_seed(session: Dict[str, Any]) -> str:
-    """根据会话信息构建创意种子文档。"""
+    """Builds a creative seed document based on session information."""
     answers = session.get("answers", {})
     fallbacks = session.get("fallback_chosen", {})
 
     lines = [
-        "# 创意种子",
-        f"_生成时间：{dt.datetime.now().strftime('%Y-%m-%d %H:%M')}_",
+        "# Creative Seed",
+        f"_Generated at: {dt.datetime.now().strftime('%Y-%m-%d %H:%M')}_",
         "",
-        "## 第一轮：核心设定",
+        "## Round 1: Core Settings",
     ]
 
     for key, label in [
-        ("protagonist_goal", "主角目标"),
-        ("core_conflict", "核心冲突"),
-        ("genre", "题材"),
-        ("tone", "情绪基调"),
-        ("hook", "最大卖点"),
+        ("protagonist_goal", "Protagonist Goal"),
+        ("core_conflict", "Core Conflict"),
+        ("genre", "Genre"),
+        ("tone", "Emotional Tone"),
+        ("hook", "Key Hook"),
     ]:
-        val = answers.get(1, {}).get(key) or fallbacks.get(key, "待定")
+        val = answers.get(1, {}).get(key) or fallbacks.get(key, "TBD")
         lines.append(f"- **{label}**：{val}")
 
-    lines.extend(["", "## 第二轮：世界观"])
+    lines.extend(["", "## Round 2: Worldview"])
     for key, label in [
-        ("world_setting", "世界背景"),
-        ("power_system", "力量体系"),
-        ("world_type", "世界类型"),
+        ("world_setting", "World Background"),
+        ("power_system", "Power System"),
+        ("world_type", "World Type"),
     ]:
-        val = answers.get(2, {}).get(key) or fallbacks.get(key, "待定")
+        val = answers.get(2, {}).get(key) or fallbacks.get(key, "TBD")
         lines.append(f"- **{label}**：{val}")
 
-    lines.extend(["", "## 第三轮：角色"])
+    lines.extend(["", "## Round 3: Characters"])
     for key, label in [
-        ("protagonist_personality", "主角性格"),
-        ("protagonist_weakness", "主角弱点"),
-        ("key_ally", "关键盟友"),
-        ("antagonist_motivation", "反派动机"),
+        ("protagonist_personality", "Protagonist Personality"),
+        ("protagonist_weakness", "Protagonist Weakness"),
+        ("key_ally", "Key Ally"),
+        ("antagonist_motivation", "Antagonist Motivation"),
     ]:
-        val = answers.get(3, {}).get(key) or fallbacks.get(key, "待定")
+        val = answers.get(3, {}).get(key) or fallbacks.get(key, "TBD")
         lines.append(f"- **{label}**：{val}")
 
-    lines.extend(["", "## 第四轮：剧情骨架"])
+    lines.extend(["", "## Round 4: Plot Skeleton"])
     for key, label in [
-        ("structure", "故事结构"),
-        ("key_turning_points", "核心转折点"),
-        ("pacing", "节奏偏好"),
-        ("taboos", "禁忌内容"),
+        ("structure", "Story Structure"),
+        ("key_turning_points", "Key Turning Points"),
+        ("pacing", "Pacing Preference"),
+        ("taboos", "Taboo Content"),
     ]:
-        val = answers.get(4, {}).get(key) or fallbacks.get(key, "待定")
+        val = answers.get(4, {}).get(key) or fallbacks.get(key, "TBD")
         lines.append(f"- **{label}**：{val}")
 
     return "\n".join(lines)
 
 
-# -- 子命令 -----------------------------------------------------------------
+# -- Subcommands --------------------------------------------------
 
 def cmd_init(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any]:
-    """初始化脑洞引导会话。"""
+    """Initializes the brainstorming guidance session."""
     root = Path(args.project_root).expanduser().resolve()
     path = _session_path(root, cfg)
 
@@ -191,7 +191,7 @@ def cmd_init(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any]:
         return {
             "ok": True, "command": "init", "created": False,
             "current_round": session.get("current_round", 0),
-            "message": "会话已存在。使用 --force 重置，或用 status 查看进度。",
+            "message": "Session already exists. Use --force to reset, or use status to view progress.",
         }
 
     session = {
@@ -207,7 +207,7 @@ def cmd_init(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any]:
     ensure_dir(path.parent)
     _save_session(root, session, cfg)
 
-    # 返回第1轮的引导问题
+    # Return round 1 guidance questions
     prompts = ROUND_PROMPTS[1]
     fallbacks = FALLBACK_OPTIONS.get(1, {})
 
@@ -217,12 +217,12 @@ def cmd_init(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any]:
         "round_name": ROUND_NAMES[1],
         "prompts": prompts,
         "fallback_options": fallbacks,
-        "message": "脑洞引导会话已初始化。请根据以下问题进行引导，收集到用户答案后执行 collect 命令。",
+        "message": "Brainstorming guidance session initialized. Answer the following questions to guide, then execute the collect command after gathering user answers.",
     }
 
 
 def cmd_status(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any]:
-    """查看当前引导进度。"""
+    """Views the current guidance progress."""
     root = Path(args.project_root).expanduser().resolve()
     session = _load_session(root, cfg)
 
@@ -238,14 +238,14 @@ def cmd_status(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any]:
         "total_rounds": cfg.total_rounds,
         "completed": completed,
         "completed_rounds": completed_rounds,
-        "current_round_name": ROUND_NAMES.get(current_round, "完成"),
+        "current_round_name": ROUND_NAMES.get(current_round, "Completed"),
         "answers_collected": {str(r): bool(answers.get(r) or answers.get(str(r))) for r in range(1, 6)},
         "next_prompts": ROUND_PROMPTS.get(current_round, []) if not completed else [],
     }
 
 
 def cmd_collect(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any]:
-    """收集用户在某轮次的回答。"""
+    """Collects user's answers in a certain round."""
     root = Path(args.project_root).expanduser().resolve()
     session = _load_session(root, cfg)
 
@@ -256,18 +256,18 @@ def cmd_collect(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any]
     except (json.JSONDecodeError, TypeError):
         return {
             "ok": False, "command": "collect",
-            "error": "answers 必须是 JSON 格式的字典，如 '{\"protagonist_goal\": \"...\"}'"
+            "error": "answers must be a JSON-format dictionary, like '{\"protagonist_goal\": \"...\"}'"
         }
 
     if not isinstance(answer_data, dict):
-        return {"ok": False, "command": "collect", "error": "answers 必须是 JSON 对象"}
+        return {"ok": False, "command": "collect", "error": "answers must be a JSON object"}
 
-    # 保存答案（使用整数键）
+    # Save answers (use integer keys)
     answers = session.get("answers", {})
     answers[round_no] = answer_data
     session["answers"] = answers
 
-    # 如果用户选了 fallback，记录
+    # If user chose fallback, record it
     if args.use_fallback:
         fallbacks = session.get("fallback_chosen", {})
         fallbacks.update(answer_data)
@@ -279,12 +279,12 @@ def cmd_collect(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any]
         "ok": True, "command": "collect",
         "round": round_no,
         "keys_collected": list(answer_data.keys()),
-        "message": f"第 {round_no} 轮答案已保存。执行 advance 进入下一轮。",
+        "message": f"Round {round_no} answers saved. Execute advance to move to the next round.",
     }
 
 
 def cmd_advance(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any]:
-    """推进到下一引导轮次。"""
+    """Advances to the next guidance round."""
     root = Path(args.project_root).expanduser().resolve()
     session = _load_session(root, cfg)
 
@@ -293,7 +293,7 @@ def cmd_advance(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any]
     if session.get("completed"):
         return {
             "ok": True, "command": "advance",
-            "message": "所有轮次已完成，请执行 generate 生成最终产出物。",
+            "message": "All rounds completed, please execute generate to produce final deliverables.",
             "completed": True,
         }
 
@@ -305,7 +305,7 @@ def cmd_advance(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any]
             "ok": True, "command": "advance",
             "current_round": current_round,
             "completed": True,
-            "message": "引导完成！请执行 generate 生成大纲、知识图谱等产出物。",
+            "message": "Guidance complete! Please execute generate to produce outline, knowledge graph, and other deliverables.",
         }
 
     session["current_round"] = next_round
@@ -321,12 +321,12 @@ def cmd_advance(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any]
         "round_name": ROUND_NAMES.get(next_round, ""),
         "prompts": next_prompts,
         "fallback_options": next_fallbacks,
-        "message": f"已进入第 {next_round} 轮：{ROUND_NAMES.get(next_round, '')}",
+        "message": f"Entered round {next_round}: {ROUND_NAMES.get(next_round, '')}",
     }
 
 
 def cmd_generate(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any]:
-    """根据收集到的信息生成最终产出物。"""
+    """Generates final deliverables based on collected information."""
     root = Path(args.project_root).expanduser().resolve()
     session = _load_session(root, cfg)
 
@@ -334,16 +334,16 @@ def cmd_generate(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any
     if not answers:
         return {
             "ok": False, "command": "generate",
-            "error": "尚未收集到任何答案，请先完成引导轮次",
+            "error": "No answers collected yet, please complete the guidance rounds first",
         }
 
-    # 生成 idea_seed.md
+    # Generate idea_seed.md
     idea_seed = _build_idea_seed(session)
     seed_path = root / cfg.idea_seed_rel_path
     ensure_dir(seed_path.parent)
     write_text(seed_path, idea_seed)
 
-    # 生成图谱初始化指令摘要（供 AI 执行）
+    # Generate knowledge graph initialization instruction summary (for AI execution)
     graph_init_hints: List[str] = []
     r3 = answers.get(3) or answers.get("3") or {}
     if isinstance(r3, dict):
@@ -358,18 +358,18 @@ def cmd_generate(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any
                 f"--attrs {{\"role\":\"antagonist\"}}"
             )
 
-    # 生成 novel_plan 提示（供 AI 填充）
+    # Generate novel_plan prompt (for AI to fill in)
     r1 = answers.get(1) or answers.get("1") or {}
     r4 = answers.get(4) or answers.get("4") or {}
 
     plan_prompt = (
-        f"请基于以下创意种子生成正式的 novel_plan.md：\n\n"
+        f"Please generate a formal novel_plan.md based on the following creative seed:\n\n"
         f"{idea_seed}\n\n"
-        f"要求：\n"
-        f"1. 包含卷章结构规划（至少3卷）\n"
-        f"2. 每卷列出核心事件和转折点\n"
-        f"3. 标注主要伏笔线（3-5条）\n"
-        f"4. 明确核心冲突的解决时间节点\n"
+        f"Requirements:\n"
+        f"1. Include volume/chapter structure planning (at least 3 volumes)\n"
+        f"2. List core events and turning points for each volume\n"
+        f"3. Mark main foreshadowing threads (3-5)\n"
+        f"4. Clarify the resolution timeline for the core conflict\n"
     )
 
     plan_prompt_path = root / "00_memory" / "plan_generation_prompt.md"
@@ -384,41 +384,41 @@ def cmd_generate(args: argparse.Namespace, cfg: IdeationConfig) -> Dict[str, Any
         "plan_prompt_file": str(plan_prompt_path),
         "rounds_completed": len(answers),
         "message": (
-            f"已生成 {len(generated_files)} 个产出文件。\n"
-            f"下一步：\n"
-            f"1. 审核 idea_seed.md 并修改\n"
-            f"2. 让 AI 读取 plan_generation_prompt.md 并生成 novel_plan.md\n"
-            f"3. 执行 story_graph_builder init 初始化知识图谱\n"
-            f"4. 执行 /一键开书 正式开始写作"
+            f"Generated {len(generated_files)} output files.\n"
+            f"Next steps:\n"
+            f"1. Review idea_seed.md and modify\n"
+            f"2. Have AI read plan_generation_prompt.md and generate novel_plan.md\n"
+            f"3. Execute story_graph_builder init to initialize the knowledge graph\n"
+            f"4. Execute /一键开书 to officially start writing"
         ),
     }
 
 
-# -- CLI -------------------------------------------------------------------
+# -- CLI ---------------------------------------------------
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="交互式脑洞引导引擎")
+    p = argparse.ArgumentParser(description="Interactive Brainstorming Guidance Engine")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    s = sub.add_parser("init", help="初始化引导会话")
+    s = sub.add_parser("init", help="Initialize guidance session")
     s.add_argument("--project-root", required=True)
-    s.add_argument("--genre", default="", help="预设题材（可选）")
-    s.add_argument("--title-hint", default="", help="书名提示（可选）")
-    s.add_argument("--force", action="store_true", help="覆盖已有会话")
+    s.add_argument("--genre", default="", help="Preset genre (optional)")
+    s.add_argument("--title-hint", default="", help="Title hint (optional)")
+    s.add_argument("--force", action="store_true", help="Overwrite existing session")
 
-    s = sub.add_parser("status", help="查看引导进度")
-    s.add_argument("--project-root", required=True)
-
-    s = sub.add_parser("collect", help="收集用户答案")
-    s.add_argument("--project-root", required=True)
-    s.add_argument("--round", type=int, default=0, help="轮次号（默认当前轮）")
-    s.add_argument("--answers", required=True, help='答案 JSON，如 \'{"protagonist_goal":"..."}\'')
-    s.add_argument("--use-fallback", action="store_true", help="标记为使用预设选项")
-
-    s = sub.add_parser("advance", help="推进到下一轮")
+    s = sub.add_parser("status", help="View guidance progress")
     s.add_argument("--project-root", required=True)
 
-    s = sub.add_parser("generate", help="生成最终产出物")
+    s = sub.add_parser("collect", help="Collect user answers")
+    s.add_argument("--project-root", required=True)
+    s.add_argument("--round", type=int, default=0, help="Round number (default current round)")
+    s.add_argument("--answers", required=True, help='Answer JSON, like \'{"protagonist_goal":"..."}\'')
+    s.add_argument("--use-fallback", action="store_true", help="Mark as using preset options")
+
+    s = sub.add_parser("advance", help="Advance to next round")
+    s.add_argument("--project-root", required=True)
+
+    s = sub.add_parser("generate", help="Generate final deliverables")
     s.add_argument("--project-root", required=True)
 
     return p.parse_args()

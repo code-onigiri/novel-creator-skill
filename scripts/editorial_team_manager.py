@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
-"""编辑团队管理器 - 为 Claude Code Agent Teams 提供状态追踪与协调辅助。
+"""Editorial Team Manager - Provides status tracking and coordination assistance for Claude Code Agent Teams.
 
-本脚本不直接调用 AI；它负责：
-1. 生成团队工作所需的上下文快照（team_context.json）
-2. 记录每轮审核结果，构建章节审核历史
-3. 检测是否触发「人工介入」条件（连续3章P0未解决）
-4. 输出供总编辑 Agent 读取的结构化状态
+This script does not directly call AI; it is responsible for:
+1. Generate context snapshots needed for team work (team_context.json)
+2. Record review results for each round, building chapter review history
+3. Detect whether the "human intervention" condition is triggered (3 consecutive chapters with P0 unresolved)
+4. Output structured status for the chief editor Agent to read
 
-用法：
-  python3 scripts/editorial_team_manager.py snapshot --project-root <路径>
-  python3 scripts/editorial_team_manager.py record-review --project-root <路径> \\
-      --chapter N --stage <stage> --verdict <pass|conditional|rewrite> \\
+Usage:
+  python3 scripts/editorial_team_manager.py snapshot --project-root <path>
+  python3 scripts/editorial_team_manager.py record-review --project-root <path> \
+      --chapter N --stage <stage> --verdict <pass|conditional|rewrite> \
       [--p0 X] [--p1 Y] [--p2 Z]
-  python3 scripts/editorial_team_manager.py status --project-root <路径>
-  python3 scripts/editorial_team_manager.py need-human --project-root <路径>
+  python3 scripts/editorial_team_manager.py status --project-root <path>
+  python3 scripts/editorial_team_manager.py need-human --project-root <path>
 """
 
 import argparse
@@ -30,18 +30,18 @@ if str(SCRIPT_DIR) not in sys.path:
 from common import ensure_dir, load_json, save_json, read_text
 
 # ---------------------------------------------------------------------------
-# 常量
+# Constants
 # ---------------------------------------------------------------------------
 
 TEAM_DIR_NAME = ".editorial_team"
 CONTEXT_FILE = "team_context.json"
 REVIEW_LOG_FILE = "review_log.json"
-MAX_P0_REWRITE_ROUNDS = 2          # 单章最大重写次数
-MAX_CONDITIONAL_CHAPTERS = 3       # 连续有条件通过超过此数强制人工介入
+MAX_P0_REWRITE_ROUNDS = 2          # Max rewrite rounds per chapter
+MAX_CONDITIONAL_CHAPTERS = 3       # Force human intervention when more than N consecutive chapters have conditional pass
 
 
 # ---------------------------------------------------------------------------
-# 辅助工具
+# Helper utilities
 # ---------------------------------------------------------------------------
 
 def _team_dir(project_root: Path) -> Path:
@@ -61,7 +61,7 @@ def _save_review_log(project_root: Path, log: List[Dict[str, Any]]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# snapshot：生成上下文快照供 chief-editor 读取
+# snapshot: Generate context snapshot for chief-editor to read
 # ---------------------------------------------------------------------------
 
 def cmd_snapshot(project_root: Path) -> Dict[str, Any]:
@@ -112,7 +112,7 @@ def cmd_snapshot(project_root: Path) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# record-review：记录一次审核结果
+# record-review: Record a review result
 # ---------------------------------------------------------------------------
 
 def cmd_record_review(
@@ -142,13 +142,13 @@ def cmd_record_review(
 
 
 # ---------------------------------------------------------------------------
-# status：查看最近若干章的审核汇总
+# status: View review summary of the last N chapters
 # ---------------------------------------------------------------------------
 
 def cmd_status(project_root: Path, last_n: int = 10) -> None:
     log = _load_review_log(project_root)
     if not log:
-        print(json.dumps({"ok": True, "message": "暂无审核记录"}, ensure_ascii=False))
+        print(json.dumps({"ok": True, "message": "No review records yet"}, ensure_ascii=False))
         return
 
     recent = log[-last_n * 5:]  # 最多每章5步，取最近N章数据
@@ -173,13 +173,13 @@ def cmd_status(project_root: Path, last_n: int = 10) -> None:
 
 
 # ---------------------------------------------------------------------------
-# need-human：检测是否需要人工介入
+# need-human: Detect whether human intervention is needed
 # ---------------------------------------------------------------------------
 
 def cmd_need_human(project_root: Path) -> None:
     log = _load_review_log(project_root)
 
-    # 规则1：单章重写次数超上限
+    # Rule 1: Rewrite count per chapter exceeds limit
     rewrite_counts: Dict[int, int] = {}
     for entry in log:
         if entry["verdict"] == "rewrite":
@@ -188,7 +188,7 @@ def cmd_need_human(project_root: Path) -> None:
     excessive = {cn: cnt for cn, cnt in rewrite_counts.items()
                  if cnt > MAX_P0_REWRITE_ROUNDS}
 
-    # 规则2：连续N章有条件通过或重写
+    # Rule 2: N consecutive chapters with conditional pass or rewrite
     final_verdicts: List[Dict[str, Any]] = [
         e for e in log if e["stage"] == "final"
     ]
@@ -221,11 +221,11 @@ def cmd_need_human(project_root: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# CLI 入口
+# CLI entry point
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="编辑团队管理器")
+    parser = argparse.ArgumentParser(description="Editorial Team Manager")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     # snapshot

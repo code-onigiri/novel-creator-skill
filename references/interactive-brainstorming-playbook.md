@@ -1,78 +1,78 @@
-# 交互式脑洞引导手册
+# Interactive Brainstorming Guide
 
-> 状态：规划中（Phase 2 实现）
+> Status: Planned (Phase 2 Implementation)
 
-## 目标
+## Goal
 
-将用户的模糊故事想法，通过结构化提问逐步拓展为完整的小说框架，同时主动联网补充世界观资料。
+Gradually expand the user's vague story idea into a complete novel framework through structured questioning, while proactively searching online for worldbuilding materials.
 
-## 引导流程（5轮收敛）
+## Guiding Flow (5-Round Convergence)
 
-### 第1轮：核心种子提取
+### Round 1: Core Seed Extraction
 
-从用户的模糊描述中提取：
-- 题材方向（玄幻/历史/科幻/都市/...）
-- 核心冲突（主角的根本困境是什么）
-- 金手指/特殊设定（主角的独特优势）
-- 情绪基调（爽文/虐文/成长/...）
+Extract from the user's vague description:
+- Genre direction (Xuanhuan/Historical/Sci-Fi/Urban/...)
+- Core conflict (what is the protagonist's fundamental predicament)
+- Golden Finger/Special setting (the protagonist's unique advantage)
+- Emotional tone (gratification/Suffering/Growth/...)
 
-引导问题示例：
-- "你的主角最想达成的目标是什么？最大的阻碍呢？"
-- "如果用一句话概括这本书最让人上瘾的点，你会怎么说？"
-- "故事发生在什么样的世界？和现实世界有什么不同？"
+Guiding question examples:
+- "What is the protagonist's most desired goal? What is the biggest obstacle?"
+- "If you had to summarize the most addictive point of this book in one sentence, what would you say?"
+- "What kind of world does the story take place in? How is it different from the real world?"
 
-### 第2轮：世界观拓展
+### Round 2: Worldview Expansion
 
-基于第1轮结果：
-- 主动联网查询相关领域资料（`/联网调研 quick`）
-- 提出世界观的关键问题：力量体系、社会结构、科技水平、地理格局
-- 引导用户补充或确认
+Based on Round 1 results:
+- Proactively search online for relevant field materials (/online-research quick)
+- Raise key worldview questions: power system, social structure, tech level, geographic layout
+- Guide the user to supplement or confirm
 
-引导问题示例：
-- "你提到了唐朝背景，我查到了一些关于贞观之治的资料。你想让故事发生在哪个具体时期？"
-- "这个世界的力量等级是怎么划分的？有没有参考的作品？"
+Guiding question examples:
+- "You mentioned a Tang Dynasty background, I found some materials about the Zhenguan Era. Which specific period do you want the story to take place in?"
+- "How is the power level of this world divided? Are there any reference works?"
 
-### 第3轮：角色网络构建
+### Round 3: Character Network Construction
 
-- 主角详细画像（性格、背景、成长弧线）
-- 核心配角（2-3人）的定位和与主角的关系
-- 主要反派/对手的动机
-- 引导用户思考角色之间的情感冲突
+- Detailed protagonist portrait (personality, background, growth arc)
+- Positioning and relationship with the protagonist of core supporting characters (2-3 people)
+- Motivation of the main antagonist/rival
+- Guide the user to think about emotional conflicts between characters
 
-引导问题示例：
-- "除了主角，谁是读者最可能喜欢的角色？为什么？"
-- "反派如果站在自己的立场上，他觉得自己做的是对的吗？"
+Guiding question examples:
+- "Besides the protagonist, which character are readers most likely to like? Why?"
+- "If the antagonist stood on their own side, would they think what they're doing is right?"
 
-### 第4轮：剧情骨架搭建
+### Round 4: Plot Skeleton Construction
 
-- 三幕结构（开端 → 发展 → 高潮）
-- 每幕的核心转折点
-- 主要伏笔线（3-5条）
-- 引导用户确认节奏偏好（快节奏爽文 vs 慢热）
+- Three-Act Structure (Beginning → Development → Climax)
+- Core turning point of each act
+- Main foreshadowing threads (3-5)
+- Guide the user to confirm pacing preference (fast-paced gratification fiction vs. slow burn)
 
-### 第5轮：确认与收敛
+### Round 5: Confirmation & Convergence
 
-- 输出结构化大纲草案
-- 用户确认或修改
-- 生成正式的 `novel_plan.md`、知识图谱初始数据、知识库骨架
+- Output structured outline draft
+- User confirms or modifies
+- Generate formal `novel_plan.md`, initial knowledge graph data, knowledge base skeleton
 
-## 兜底策略
+## Fallback Strategy
 
-用户在任何轮次说"我没想好"或"随便"时：
-1. 基于已有信息和题材常见模式，给出 2-3 个建议选项
-2. 用户选一个即可，不需要从零想
-3. 如果用户完全不参与，切换到"全自动模式"——基于题材模板和联网资料自动生成
+When the user says "I haven't thought it through" or "whatever" at any round:
+1. Based on existing information and common genre patterns, give 2-3 suggested options
+2. The user picks one, no need to think from scratch
+3. If the user does not participate at all, switch to "Fully Automatic Mode" — auto-generate based on genre templates and online materials
 
-## 产出物
+## Deliverables
 
-- `00_memory/idea_seed.md`（创意种子）
-- `00_memory/novel_plan.md`（主线计划）
-- `00_memory/story_graph.json`（知识图谱初始数据）
-- `02_knowledge_base/` 下各知识库文件
+- `00_memory/idea_seed.md` (creative seed)
+- `00_memory/novel_plan.md` (main outline)
+- `00_memory/story_graph.json` (initial knowledge graph data)
+- Knowledge base files under `02_knowledge_base/`
 
-## 脚本入口（规划）
+## Script Entry Points (Planned)
 
 ```bash
 python3 scripts/interactive_ideation_engine.py \
-  --project-root <目录> --mode interactive
+  --project-root <directory> --mode interactive
 ```

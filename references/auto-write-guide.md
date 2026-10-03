@@ -1,59 +1,59 @@
-# 一键写书（自动化调度模式）指南
+# One-Click Novel Writing (Automated Scheduling Mode) Guide
 
-> 从 SKILL.md v8.0 第10节抽取，详细用法参考本文档。
+> Extracted from SKILL.md v8.0 Section 10; detailed usage see this document.
 
-> 能力状态：`[部分实现]`。调度框架、断点续写、进度报告已就绪。端到端全自动执行依赖知识图谱、大纲锚点等规划中机制的补全。
+> Capability status: `[Partially Implemented]`. Scheduling framework, breakpoint resume, and progress reports are ready. End-to-end fully automatic execution depends on planned mechanisms such as the knowledge graph and outline anchors.
 
-## 概述
+## Overview
 
-`/一键写书 简介="..." [目标字数=200万] [调研深度=standard]`
+`/one-click-writing synopsis="..." [targetChars=2000000] [researchDepth=standard]`
 
-用户提供简介和目标字数后，系统按调度框架自动编排写作流程。当前版本需要在关键节点（如卷间过渡、门禁反复失败时）进行人工确认；规划中的增强机制就位后可支撑完全无人干预的端到端执行。
+After the user provides a synopsis and target word count, the system automatically arranges the writing flow according to the scheduling framework. The current version requires human confirmation at key points (such as volume transitions, repeated gate check failures); once the planned enhancement mechanisms are in place, it can support fully unmanned end-to-end execution.
 
-## 执行流程
+## Execution Flow
 
-1. 解析简介，提取题材、核心冲突、主角目标
-2. 运行 `/联网调研` 进行基础调研（按题材自动生成调研维度）
-3. 自动执行 `/一键开书` 初始化项目（建模+建库+首章准备）
-4. 循环执行（直到达到目标字数）：
-   a. 分析本章知识需求，检测缺口
-   b. `/联网调研` 补充缺失资料
-   c. `/继续写` 完成写作+门禁
-   d. 门禁失败 → 自动修复（最多3次）
-   e. 每10章冲刺复盘
-   f. 每卷结束输出进度报告
-5. 生成完成报告
+1. Parse synopsis, extract genre, core conflict, protagonist goal
+2. Run `/online-research` for basic research (automatically generate research dimensions by genre)
+3. Automatically execute `/one-click-novel-init` to initialize the project (worldbuilding + database creation + first chapter prep)
+4. Loop execution (until target word count reached):
+   a. Analyze this chapter's knowledge needs, detect gaps
+   b. `/online-research` to fill missing materials
+   c. `/continue-write` to complete writing + gate check
+   d. Gate check fails → auto-repair (up to 3 attempts)
+   e. Sprint review every 10 chapters
+   f. Output progress report at the end of each volume
+5. Generate completion report
 
-## 断点续写
+## Breakpoint Resume
 
-中断后再次执行 `/一键写书`，系统自动从断点恢复。
+After interruption, execute `/one-click-writing` again; the system automatically detects the breakpoint and resumes.
 
-## 脚本命令
+## Script Commands
 
 ```bash
-# 生成执行计划（不实际执行）
+# Generate execution plan (without actually executing)
 python3 scripts/auto_novel_writer.py plan \
-  --synopsis "<简介>" --target-chars 2000000 --genre <题材> --research-depth standard
+  --synopsis "<synopsis>" --target-chars 2000000 --genre <genre> --research-depth standard
 
-# 启动全自动写作
+# Start fully automatic writing
 python3 scripts/auto_novel_writer.py run \
-  --project-root <目录> --synopsis "<简介>" --target-chars 2000000
+  --project-root <directory> --synopsis "<synopsis>" --target-chars 2000000
 
-# 查看当前进度
-python3 scripts/auto_novel_writer.py report --project-root <目录>
+# View current progress
+python3 scripts/auto_novel_writer.py report --project-root <directory>
 
-# 更新进度（供外部脚本调用）
+# Update progress (for external script calls)
 python3 scripts/auto_novel_writer.py progress \
-  --project-root <目录> --chapter 15 --chars-added 3500 --gate-passed
+  --project-root <directory> --chapter 15 --chars-added 3500 --gate-passed
 ```
 
-## 支持的 LLM
+## Supported LLMs
 
 - OpenAI (GPT-4 / GPT-4-Turbo)
 - Anthropic (Claude 3/4)
 - Kimi 2.5 (Moonshot)
-- GLM-5 (智谱)
+- GLM-5 (Zhipu)
 - MiniMax 2.5
-- 任意 OpenAI 兼容 API
+- Any OpenAI-Compatible API
 
-LLM 配置详见 `user-guide.md` 第3节。
+LLM configuration details see `user-guide.md` Section 3.

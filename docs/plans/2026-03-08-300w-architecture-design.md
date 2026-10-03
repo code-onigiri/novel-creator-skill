@@ -1,116 +1,116 @@
-# Novel Creator Skill v10.0 架构设计
+# Novel Creator Skill v10.0 Architecture Design
 
-> 目标：支撑 300 万字长篇小说创作，剧情不混乱，写作风格接近人类，skill-creator 100 分。
-
----
-
-## 设计原则
-
-1. **最大自动化**：所有高级功能默认开启，用户无需传额外参数
-2. **最小介入**：用户唯一需要做的是确认剧情方向，其余全部自动化
-3. **闭环保障**：每个功能的"写入"和"读取"必须同时存在，单向管道无效
+> Goal: Support 3 million character novel creation with no plot inconsistency, human-like writing style, and skill-creator 100/100 score.
 
 ---
 
-## 完整管道设计
+## Design Principles
 
-### continue-write 新流程
+1. **Maximum Automation** — All advanced features enabled by default; users do not need to pass extra parameters
+2. **Minimal Intervention** — The only thing the user needs to do is confirm the plot direction; everything else is automated
+3. **Closed-Loop Assurance** — Every feature's "write" and "read" must both exist; one-way pipelines are invalid
+
+---
+
+## Complete Pipeline Design
+
+### continue-write New Flow
 
 ```
-写前阶段：
-  1. plot_rag_retriever query        ← 已有
-  2. story_graph_builder generate-context  ← 新增：角色/地点/关系状态注入
-  3. outline_anchor check            ← 已有（默认改为ON）
-  4. anti_resolution check           ← 已有（默认改为ON）
-  5. event_matrix recommend          ← 已有（默认改为ON）
-  → 合并注入 writing_query
+Pre-writing stage:
+  1. plot_rag_retriever query        ← existing
+  2. story_graph_builder generate-context  ← new: inject character/location/relationship state
+  3. outline_anchor check            ← existing (default changed to ON)
+  4. anti_resolution check           ← existing (default changed to ON)
+  5. event_matrix recommend          ← existing (default changed to ON)
+  → merged into writing_query
 
-写作阶段：
-  6. beat_sheet_generator generate   ← 新增：生成5-8个Beat节点
-  7. LLM/模板 按Beat扩写             ← 新增：逐Beat生成正文段落
-  8. chapter_synthesizer merge       ← 新增：合成完整章节草稿
+Writing stage:
+  6. beat_sheet_generator generate   ← new: generate 5-8 Beat nodes
+  7. LLM/template expand per Beat    ← new: generate body paragraph per Beat
+  8. chapter_synthesizer merge       ← new: synthesize complete chapter draft
 
-门禁阶段：
-  9. text_humanizer detect           ← 已有（自动运行）
-  10. [AI模式>阈值] → build_humanize_prompt → 自动重写 → 重新检测（最多2轮）  ← 新增
-  11. 质量评估 → 门禁检查            ← 已有
+Gate stage:
+  9. text_humanizer detect           ← existing (auto-run)
+  10. [AI pattern > threshold] → build_humanize_prompt → auto-rewrite → re-detect (max 2 rounds) ← new
+  11. quality evaluation → gate check ← existing
 
-门禁通过后：
-  12. story_graph_updater extract + apply  ← 修复：补充 apply 调用
-  13. outline_anchor advance         ← 修复：补充 advance 调用
-  14. [每10章] cross_agent_reviewer  ← 已有（默认改为ON）
-  15. [每10章] style_fingerprint 更新风格基准  ← 新增
-  16. plot_rag_retriever build       ← 已有
+After gate passes:
+  12. story_graph_updater extract + apply  ← fixed: add missing apply call
+  13. outline_anchor advance              ← fixed: add missing advance call
+  14. [every 10 chapters] cross_agent_reviewer  ← existing (default changed to ON)
+  15. [every 10 chapters] style_fingerprint update style baseline ← new
+  16. plot_rag_retriever build            ← existing
 ```
 
 ---
 
-## 需要新增的功能
+## New Features Needed
 
-### A. story_graph_builder: generate-context 子命令
+### A. story_graph_builder: generate-context Subcommand
 
-**输入**：project_root, chapter_no（可选：关注的角色名列表）
-**输出**：JSON，包含：
+**Input:** `project_root`, `chapter_no` (optional: list of character names to focus on)
+**Output:** JSON containing:
 ```json
 {
   "ok": true,
-  "context_prompt": "当前已知角色状态：\n- 李逍遥：位于蜀山...\n- 赵灵儿：...\n关键关系：...\n活跃伏笔：...",
+  "context_prompt": "Current known character status:\n- Li Xiaoyao: located at Shu Mountain...\n- Zhao Ling'er:...\nKey relationships:...\nActive foreshadows:...",
   "active_foreshadows": [...],
   "character_locations": {...},
   "recent_events": [...]
 }
 ```
 
-实现逻辑：从 `story_graph.json` 中提取：
-- 所有 character 节点的 `location` 和 `status` 字段
-- 所有 `foreshadow` 节点中 `resolved: false` 的条目
-- 最近5个 `event` 节点的摘要
+Implementation logic: Extract from `story_graph.json`:
+- The `location` and `status` fields of all `character` nodes
+- All `foreshadow` nodes with `resolved: false`
+- Summaries of the most recent 5 `event` nodes
 
-### B. text_humanizer 自动纠正循环
+### B. text_humanizer Auto-Correction Loop
 
-在 `write_gate_artifacts` 函数中扩展现有逻辑：
+Extend existing logic in the `write_gate_artifacts` function:
 
 ```
-当前：detect → report（报告AI模式，不纠正）
-新增：detect → [severity >= medium] → build_humanize_prompt → 写入章节文件 → 重新detect
-      最多2轮，超过2轮则在报告中标记 "需要人工校稿"
+Current: detect → report (report AI patterns, do not correct)
+New: detect → [severity >= medium] → build_humanize_prompt → write to chapter file → re-detect
+      Max 2 rounds; if exceeded, mark "needs human copyedit" in the report
 ```
 
-### C. Beat Sheet 写作流水线
+### C. Beat Sheet Writing Pipeline
 
-新增参数 `--use-beat-sheet`（默认True），替换当前的模板draft生成：
+Add `--use-beat-sheet` parameter (default True), replacing the current template draft generation:
 
 ```python
-# 替换 generate_draft_text() 调用
+# Replace generate_draft_text() call
 beats = run_python("beat_sheet_generator.py", ["generate", ...])
 for beat in beats:
     segment = llm_write_segment(beat) or template_fill(beat)
 chapter_draft = run_python("chapter_synthesizer.py", ["merge", segments])
 ```
 
-降级策略：无LLM时，Beat节点作为提纲占位符，保留 `<!-- BEAT: xxx -->` 标记。
+Downgrade Strategy: Without an LLM, Beat nodes serve as outline placeholders, retaining `<!-- BEAT: xxx -->` markers.
 
-### D. story_graph_updater apply 补充
+### D. story_graph_updater apply Supplement
 
-在 `--auto-graph-update` 逻辑中，在 `extract` 后立即调用 `apply`：
+In the `--auto-graph-update` logic, call `apply` immediately after `extract`:
 
 ```python
 run_python("story_graph_updater.py", ["extract", ...])
-run_python("story_graph_updater.py", ["apply", ...])  # 新增
+run_python("story_graph_updater.py", ["apply", ...])  # new
 ```
 
-### E. outline_anchor advance 补充
+### E. outline_anchor advance Supplement
 
-门禁通过后，调用 `outline_anchor advance`：
+After the gate passes, call `outline_anchor advance`:
 
 ```python
 if gate_passed_final and args.enable_constraints:
-    run_python("outline_anchor_manager.py", ["advance", ...])  # 新增
+    run_python("outline_anchor_manager.py", ["advance", ...])  # new
 ```
 
-### F. style_fingerprint 每10章自动更新
+### F. style_fingerprint Auto-Update Every 10 Chapters
 
-新增参数 `--auto-style-update`（默认True），`--style-update-interval`（默认10）：
+Add `--auto-style-update` parameter (default True), `--style-update-interval` (default 10):
 
 ```python
 if gate_passed_final and args.auto_style_update and chapter_count % args.style_update_interval == 0:
@@ -119,33 +119,33 @@ if gate_passed_final and args.auto_style_update and chapter_count % args.style_u
 
 ---
 
-## 默认值变更
+## Default Value Changes
 
-| 参数 | 旧默认 | 新默认 | 理由 |
-|------|--------|--------|------|
-| `--enable-constraints` | False | True | 核心保障层，应默认开启 |
-| `--auto-graph-update` | False | True | 图谱不更新等于没有 |
-| `--auto-batch-review` | False | True | 长篇必须有批量审核 |
-| `--auto-research` | False | True | 知识缺口自动检测 |
-| `--use-beat-sheet` | N/A | True | 新增，默认开启 |
-| `--auto-style-update` | N/A | True | 新增，默认开启 |
-
----
-
-## 验收标准
-
-1. `continue-write` 不带任何额外参数，能自动执行完整16步管道
-2. 连续执行50章，`story_graph.json` 中节点数随章节增加（验证图谱确实在更新）
-3. 连续执行50章，`outline_anchor.json` 中 `current_chapter` 随章节推进（验证锚点确实在推进）
-4. text_humanizer 检测 severity=high 时，输出文件的AI模式密度低于检测前
-5. 第10/20/30章后，风格基准文件时间戳更新（验证风格锚点在自动更新）
-6. 所有集成测试通过，`py_compile` 零错误
-7. SKILL.md 能力矩阵全部功能状态更新为"已实现"
+| Parameter | Old Default | New Default | Rationale |
+|-----------|-------------|-------------|-----------|
+| `--enable-constraints` | False | True | Core assurance layer, should be on by default |
+| `--auto-graph-update` | False | True | Graph not updated is equivalent to not having one |
+| `--auto-batch-review` | False | True | Long-form novels require batch review |
+| `--auto-research` | False | True | Automatic knowledge gap detection |
+| `--use-beat-sheet` | N/A | True | New feature, on by default |
+| `--auto-style-update` | N/A | True | New feature, on by default |
 
 ---
 
-## 实施阶段划分
+## Acceptance Criteria
 
-- **Phase A**（核心数据闭环）：E(advance) + D(apply) + A(generate-context) 接入
-- **Phase B**（写作质量管道）：C(Beat Sheet) + B(humanizer纠正循环) + F(风格更新)
-- **Phase C**（默认值 + 测试 + SKILL.md）：全部参数默认改为True + 集成测试 + 文档更新
+1. `continue-write` without any extra parameters automatically executes the full 16-step pipeline
+2. Running 50 consecutive chapters, the node count in `story_graph.json` increases with chapter number (verifying the graph is actually updating)
+3. Running 50 consecutive chapters, `current_chapter` in `outline_anchor.json` advances with each chapter (verifying anchors are actually advancing)
+4. When text_humanizer detects severity=high, the AI pattern density in the output file is lower than before detection
+5. After chapters 10/20/30, the style baseline file timestamp updates (verifying style anchors auto-update)
+6. All integration tests pass, `py_compile` zero errors
+7. SKILL.md capability matrix all feature statuses updated to "Implemented"
+
+---
+
+## Implementation Phase Division
+
+- **Phase A** (Core DataClosed Loop): E(advance) + D(apply) + A(generate-context) integration
+- **Phase B** (Writing Quality Pipeline): C(Beat Sheet) + B(humanizer correction loop) + F(style update)
+- **Phase C** (Defaults + Testing + SKILL.md): All parameters default to True + integration tests + documentation update

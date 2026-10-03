@@ -1,29 +1,29 @@
-# 当前写作状态
+# Current Writing State
 
-> 本文件提供即时上下文。每章写完后必须更新。
+> This file provides immediate context. Must be updated after each chapter is written.
 
-## 进度
-- 当前章节：第0章（尚未开始）
-- 当前卷：第一卷
-- 总字数：0
-- 最后更新：2026-03-08
+## Progress
+- Current Chapter: Chapter 0 (Not yet started)
+- Current Volume: Volume 1
+- Total Word Count: 0
+- Last Updated: 2026-03-08
 
-## 当前活跃剧情线
-1. [主线] 主线冲突待细化（进展：0%）
+## Current Active Plot Threads
+1. [Main Plot] Main conflict to be refined (Progress: 0%)
 
-## 当前活跃人物
-| 人物 | 当前状态 | 所在位置 | 当前目标 |
+## Current Active Characters
+| Character | Current State | Location | Current Goal |
 |------|---------|---------|---------|
-| 主角 | 初始状态 | 起始地点 | 明确主角核心目标 |
+| Protagonist | Initial State | Starting Location | Clarify the protagonist's core objective |
 
-## 待回收伏笔（紧急度排序）
-（暂无）
+## Foreshadowing Pending Recovery (Sorted by Urgency)
+(None for now)
 
-## 最近5章摘要
-（尚未开始写作）
+## Summary of Last 5 Chapters
+(Writing has not yet started)
 
-## 下一章预告
-- 章节号：第1章
-- 计划内容：建立主角目标与核心冲突，留下章末钩子
-- 涉及人物：主角
-- 需要回收的伏笔：无
+## Next Chapter Preview
+- Chapter Number: Chapter 1
+- Planned Content: Establish protagonist goal and core conflict, leave a chapter-ending hook
+- Characters Involved: Protagonist
+- Foreshadowing to be recovered: None

@@ -1,39 +1,39 @@
-# 世界状态追踪
+# World State Tracker
 
-> 追踪世界观的当前已揭示状态。每章如有新设定揭示则更新。
+> Track the current revealed state of the worldbuilding. Update when new settings are revealed in any chapter.
 
-## 力量体系当前状态
-从初阶到终阶，逐步揭示规则与限制。
-<!-- 已揭示的等级、规则、限制 -->
+## Current State of Power System
+Gradually reveal rules and limitations from beginner to ultimate level.
+<!-- Revealed levels, rules, and limitations -->
 
-### 已揭示等级
-| 等级名 | 描述 | 揭示章节 | 已知角色 |
+### Revealed Levels
+| Level Name | Description | Revealed Chapter | Known Characters |
 |--------|------|---------|---------|
 
-### 已揭示规则
-| 规则 | 描述 | 揭示章节 |
+### Revealed Rules
+| Rule | Description | Revealed Chapter |
 |------|------|---------|
 
-## 势力分布
-| 势力名 | 实力等级 | 与主角关系 | 当前状态 | 最近变化章节 |
+## Faction Distribution
+| Faction Name | Power Level | Relationship with Protagonist | Current Status | Last Changed Chapter |
 |--------|---------|-----------|---------|------------|
-<!-- 从世界观库初始化，后续动态更新 -->
+<!-- Initialize from worldbuilding database, dynamically updated later -->
 
-## 地理位置
-### 已出现的地点
-| 地点名 | 类型 | 首次出现 | 关联势力 | 当前状态 |
+## Geographic Locations
+### Locations Appeared
+| Location Name | Type | First Appearance | Associated Faction | Current Status |
 |--------|------|---------|---------|---------|
 
-### 主角行踪
-| 章节范围 | 位置 | 备注 |
+### Protagonist's Movements
+| Chapter Range | Location | Notes |
 |----------|------|------|
 
-## 重要物品/资源
-| 物品名 | 持有者 | 功能 | 获得章节 | 当前状态 |
+## Important Items/Resources
+| Item Name | Holder | Function | Obtained Chapter | Current Status |
 |--------|--------|------|---------|---------|
-<!-- 金手指、神器、丹药等重要物品 -->
+<!-- Important items like Cheat Tools, Divine Artifacts, Pills, etc. -->
 
-## 已揭示的秘密/真相
-| 内容 | 揭示章节 | 知情角色 | 对读者是否可见 | 影响范围 |
+## Revealed Secrets/Truths
+| Content | Revealed Chapter | Informed Characters | Visible to Readers | Impact Scope |
 |------|---------|---------|--------------|---------|
-<!-- 世界观中逐步揭示的秘密 -->
+<!-- Secrets gradually revealed in the worldbuilding -->

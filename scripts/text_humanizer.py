@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""文本人性化处理器 - 检测并消除中文小说中的 AI 写作痕迹。
+"""Text Humanizer - Detects and eliminates AI writing traces in Chinese novels.
 
-基于 humanizer skill (https://github.com/blader/humanizer) 的方法论，
-专为中文网络小说创作场景定制，检测 7 大类 AI 写作模式，
-输出结构化报告和两遍式润色 prompt。
+Based on the methodology from humanizer skill (https://github.com/blader/humanizer),
+customized for Chinese web novel writing scenarios, detecting 7 major categories of AI writing patterns,
+outputs structured reports and two-pass polishing prompts.
 
-子命令：
+Subcommands:
   detect   --chapter-file <path> [--project-root <path>]
-           扫描章节文件，输出 JSON 检测报告
+             Scans chapter file, outputs JSON detection report
   report   --chapter-file <path>
-           输出人类可读的 AI 痕迹报告（Markdown）
+             Outputs human-readable AI trace report (Markdown)
   prompt   --chapter-file <path> [--mode gate|full]
-           生成供 Claude 执行的两遍式人性化润色 prompt
+             Generates a two-pass humanization polishing prompt for Claude to execute
 """
 
 import argparse
@@ -22,12 +22,12 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 # ---------------------------------------------------------------------------
-# AI 模式库（中文小说专用）
+# AI Pattern Library (Chinese Novel Specific)
 # ---------------------------------------------------------------------------
 
-# Category 1 - AI 高频词汇（直接命中即扣分）
+# Category 1 - AI high-frequency vocabulary (deduct on direct hit)
 AI_VOCAB: List[Tuple[str, str]] = [
-    # 比喻/感知套话
+    # Metaphor/sensation clichés
     ("不禁", "情感反应套话，角色常失去主动性"),
     ("仿佛", "过度比喻词，每段出现超过1次即AI特征"),
     ("宛如", "过度比喻词"),
@@ -35,65 +35,65 @@ AI_VOCAB: List[Tuple[str, str]] = [
     ("恍若", "过度比喻词"),
     ("仿若", "过度比喻词"),
     ("好似", "过度比喻词"),
-    # 视觉描写套话
+    # Visual description clichés
     ("映入眼帘", "陈词滥调视觉过渡"),
     ("涌入眼帘", "陈词滥调视觉过渡"),
     ("跃入眼帘", "陈词滥调视觉过渡"),
-    # 时间膨胀
+    # Time inflation
     ("此时此刻", "时间强调膨胀"),
     ("就在此时", "时间强调膨胀"),
     ("恰在此时", "时间强调膨胀"),
     ("在这一刻", "时间强调膨胀"),
-    # 内心独白套话
+    # Internal monologue clichés
     ("心中暗道", "内心独白滥用"),
     ("心中暗想", "内心独白滥用"),
     ("暗自思忖", "内心独白滥用"),
     ("心中一动", "内心独白滥用"),
     ("心中一凛", "内心独白滥用"),
     ("心念一动", "内心独白滥用"),
-    # 对话标签套话
+    # Dialogue tag clichés
     ("沉声道", "对话标签套话，可简化为「说」"),
     ("淡淡地说", "对话标签套话"),
     ("轻声道", "对话标签套话"),
     ("缓缓说道", "对话标签套话"),
     ("淡然道", "对话标签套话"),
     ("漠然道", "对话标签套话"),
-    # 反应/动作套话
+    # Reaction/action clichés
     ("脸色一变", "反应套话"),
     ("神情一凛", "反应套话"),
     ("眉头微皱", "反应套话"),
     ("身形一顿", "动作套话"),
     ("脚步一顿", "动作套话"),
     ("身子微微一颤", "动作套话"),
-    # 外貌描写套话
+    # Appearance description clichés
     ("目光如炬", "眼睛描写套话"),
     ("目光深邃", "眼睛描写套话"),
     ("深邃的眸子", "眼睛描写套话"),
     ("嘴角微扬", "微笑描写套话（AI特征极强）"),
     ("勾起一抹弧度", "微笑描写套话（AI特征极强）"),
     ("嘴角勾起", "微笑描写套话"),
-    # 过渡套话
+    # Transition clichés
     ("只见", "场景过渡套话"),
     ("但见", "场景过渡套话"),
-    # 情感套话
+    # Emotion clichés
     ("感慨良多", "情感套话"),
     ("百感交集", "情感套话"),
     ("不禁感叹", "情感套话"),
-    # 主体性剥夺
+    # Subject deprivation
     ("不由自主", "主体性剥夺词，角色变成被动对象"),
     ("不由得", "主体性剥夺词"),
     ("情不自禁", "主体性剥夺词"),
 ]
 
-# Category 2 - 弱化副词泛滥（单个无害，密集使用是AI特征）
+# Category 2 - Weakening adverb proliferation (harmless individually, dense use is AI trait)
 WEAK_ADVERBS: List[str] = [
     "微微", "淡淡", "缓缓", "轻轻", "悄悄", "悄然",
     "深深", "静静", "慢慢", "默默", "暗暗", "隐隐",
     "渐渐", "徐徐", "徐徐地",
 ]
-WEAK_ADVERB_DENSITY_THRESHOLD = 3  # 每千字超过此数量即触发
+WEAK_ADVERB_DENSITY_THRESHOLD = 3  # Triggers when exceeding this per thousand characters
 
-# Category 3 - 意义膨胀（重要性/历史性夸大）
+# Category 3 - Significance inflation (exaggeration of importance/historicality)
 SIGNIFICANCE_PHRASES: List[Tuple[str, str]] = [
     ("意义深远", "意义膨胀"),
     ("影响深远", "意义膨胀"),
@@ -113,7 +113,7 @@ SIGNIFICANCE_PHRASES: List[Tuple[str, str]] = [
     ("不容置疑", "评论性插入"),
 ]
 
-# Category 4 - 通用结论套话（小说结尾常见）
+# Category 4 - General conclusion clichés (common in novel endings)
 CONCLUSION_CLICHÉS: List[str] = [
     "展望未来", "未来可期", "前途无量",
     "前景广阔", "大有可为", "方兴未艾",
@@ -121,7 +121,7 @@ CONCLUSION_CLICHÉS: List[str] = [
     "前程似锦", "大展宏图",
 ]
 
-# Category 5 - 段落首句总结模式（从正文提取后检测）
+# Category 5 - Paragraph first-sentence summary pattern (detected after extraction from body text)
 PARA_SUMMARY_STARTERS: List[str] = [
     "总的来说", "总而言之", "综上所述",
     "由此可见", "不难看出", "显而易见",
@@ -131,7 +131,7 @@ PARA_SUMMARY_STARTERS: List[str] = [
     "换句话说", "简而言之",
 ]
 
-# Category 6 - 翻译腔/正式语体入侵小说（网文里出现是异物）
+# Category 6 - Translation-style/formal register invading novels (presence in web fiction is alien)
 FORMAL_INTRUSION: List[Tuple[str, str]] = [
     ("于是乎", "翻译腔正式语体"),
     ("然而事实上", "正式论述语体入侵"),
@@ -145,11 +145,11 @@ FORMAL_INTRUSION: List[Tuple[str, str]] = [
     ("诚然", "正式让步连词"),
 ]
 
-# Category 7 - 排比三连（连续三个相同句式）
-# 通过正则检测"A、B、C"或"A，B，C"中结构相似的片段
+# Category 7 - Parallel three-part (three consecutive same-structure sentences)
+# Detects structurally similar fragments in "A、B、C" or "A，B，C" patterns via regex
 
 # ---------------------------------------------------------------------------
-# 检测核心
+# Detection Core
 # ---------------------------------------------------------------------------
 
 _PARA_SEP = re.compile(r"\n\s*\n")
@@ -158,7 +158,7 @@ _THOUSAND_CHARS = 1000
 
 
 def _strip_markdown(text: str) -> str:
-    """去除标题、列表等 Markdown 标记，只保留正文。"""
+    """Strips Markdown markers like headings and lists, keeping only body text."""
     lines = []
     for line in text.splitlines():
         stripped = line.strip()
@@ -171,7 +171,7 @@ def _strip_markdown(text: str) -> str:
 
 
 def _extract_context(text: str, pos: int, window: int = 40) -> str:
-    """截取命中位置前后 window 字符作为上下文。"""
+    """Extracts window characters around the match position as context."""
     start = max(0, pos - window)
     end = min(len(text), pos + window)
     snippet = text[start:end].replace("\n", " ")
@@ -183,13 +183,13 @@ def _extract_context(text: str, pos: int, window: int = 40) -> str:
 
 
 def detect_patterns(text: str) -> Dict:
-    """对章节正文执行全类别检测，返回结构化结果。"""
+    """Performs full-category detection on chapter body text, returns structured results."""
     body = _strip_markdown(text)
     pure = re.sub(r"\s+", "", body)
     char_count = max(len(pure), 1)
     per_thousand = char_count / _THOUSAND_CHARS
 
-    # --- Category 1: AI 高频词汇 ---
+    # --- Category 1: AI high-frequency vocabulary ---
     vocab_hits: List[Dict] = []
     total_vocab_count = 0
     for phrase, reason in AI_VOCAB:
@@ -197,7 +197,7 @@ def detect_patterns(text: str) -> Dict:
         if positions:
             count = len(positions)
             total_vocab_count += count
-            # 截取前3个上下文示例
+            # Extract first 3 context examples
             examples = [_extract_context(body, p) for p in positions[:3]]
             vocab_hits.append({
                 "phrase": phrase,
@@ -207,7 +207,7 @@ def detect_patterns(text: str) -> Dict:
             })
     vocab_density = total_vocab_count / per_thousand if per_thousand else 0
 
-    # --- Category 2: 弱化副词密度 ---
+    # --- Category 2: Weakening adverb density ---
     adverb_hits: List[Dict] = []
     total_adverb_count = 0
     for adv in WEAK_ADVERBS:
@@ -219,7 +219,7 @@ def detect_patterns(text: str) -> Dict:
     adverb_density = total_adverb_count / per_thousand if per_thousand else 0
     adverb_flagged = adverb_density > WEAK_ADVERB_DENSITY_THRESHOLD
 
-    # --- Category 3: 意义膨胀 ---
+    # --- Category 3: Significance inflation ---
     significance_hits: List[Dict] = []
     for phrase, reason in SIGNIFICANCE_PHRASES:
         positions = [m.start() for m in re.finditer(re.escape(phrase), body)]
@@ -232,10 +232,10 @@ def detect_patterns(text: str) -> Dict:
                 "examples": examples,
             })
 
-    # --- Category 4: 通用结论套话 ---
+    # --- Category 4: General conclusion clichés ---
     conclusion_hits: List[str] = [p for p in CONCLUSION_CLICHÉS if p in body]
 
-    # --- Category 5: 段落首句总结模式 ---
+    # --- Category 5: Paragraph first-sentence summary pattern ---
     paragraphs = [p.strip() for p in _PARA_SEP.split(body) if p.strip()]
     summary_para_count = 0
     summary_examples: List[str] = []
@@ -248,7 +248,7 @@ def detect_patterns(text: str) -> Dict:
                 break
     essay_structure_ratio = summary_para_count / max(len(paragraphs), 1)
 
-    # --- Category 6: 翻译腔/正式语体入侵 ---
+    # --- Category 6: Translation-style/formal register intrusion ---
     formal_hits: List[Dict] = []
     for phrase, reason in FORMAL_INTRUSION:
         positions = [m.start() for m in re.finditer(re.escape(phrase), body)]
@@ -260,14 +260,14 @@ def detect_patterns(text: str) -> Dict:
                 "examples": [_extract_context(body, p) for p in positions[:2]],
             })
 
-    # --- Category 7: 排比三连检测 ---
-    # 检测"A、B、C"模式中 A/B/C 结尾字符相同（同结构排比）
+    # --- Category 7: Parallel three-part detection ---
+    # Detects structurally similar fragments in "A、B、C" or "A，B，C" patterns where ending characters match
     trio_pattern = re.compile(r"[\u4e00-\u9fff]{2,8}[、，][^\n、，。！？]{2,8}[、，][^\n、，。！？]{2,8}[。，！]")
     trio_matches = trio_pattern.findall(body)
     trio_count = len(trio_matches)
     trio_examples = trio_matches[:3]
 
-    # --- 综合评分 ---
+    # --- Overall scoring ---
     issues: List[str] = []
     if vocab_hits:
         top_phrases = sorted(vocab_hits, key=lambda x: x["count"], reverse=True)[:5]
@@ -286,7 +286,7 @@ def detect_patterns(text: str) -> Dict:
     if trio_count > 3:
         issues.append(f"排比三连过多：{trio_count} 处")
 
-    # 严重程度评级
+    # Severity rating
     issue_count = len(issues)
     severity = "low" if issue_count <= 1 else ("medium" if issue_count <= 3 else "high")
 
@@ -332,38 +332,38 @@ def detect_patterns(text: str) -> Dict:
 
 
 # ---------------------------------------------------------------------------
-# 报告生成
+# Report Generation
 # ---------------------------------------------------------------------------
 
 def build_text_report(result: Dict, chapter_name: str) -> str:
-    """将 detect 结果转为人类可读 Markdown 报告。"""
-    severity_label = {"low": "轻微", "medium": "中等", "high": "严重"}.get(
+    """Converts detect results to human-readable Markdown report."""
+    severity_label = {"low": "Mild", "medium": "Moderate", "high": "Severe"}.get(
         result["severity"], result["severity"]
     )
     lines = [
-        f"# 去AI味检测报告",
+        f"# AI Trace Detection Report",
         f"",
-        f"- 章节：{chapter_name}",
-        f"- 字符数：{result['char_count']}",
-        f"- 段落数：{result['paragraph_count']}",
-        f"- AI痕迹严重程度：**{severity_label}**（发现 {result['issue_count']} 类问题）",
+        f"- Chapter: {chapter_name}",
+        f"- Character count: {result['char_count']}",
+        f"- Paragraph count: {result['paragraph_count']}",
+        f"- AI trace severity level: **{severity_label}** (found {result['issue_count']} categories of issues)",
         f"",
     ]
 
     if not result["issues"]:
-        lines.append("未发现显著 AI 写作痕迹，本章人性化程度良好。")
+        lines.append("No significant AI writing traces found; this chapter is well humanized.")
         return "\n".join(lines)
 
-    lines.append("## 发现的问题")
+    lines.append("## Issues Found")
     for i, issue in enumerate(result["issues"], 1):
         lines.append(f"{i}. {issue}")
     lines.append("")
 
-    # AI高频词详情
+    # AI high-frequency vocabulary details
     vocab = result["details"]["ai_vocab"]
     if vocab["hits"]:
-        lines.append("## AI 高频词详情")
-        lines.append(f"总命中：{vocab['total_count']} 次，密度：每千字 {vocab['density_per_thousand']} 次")
+        lines.append("## AI High-Frequency Vocabulary Details")
+        lines.append(f"Total hits: {vocab['total_count']} times, density: {vocab['density_per_thousand']} times per thousand characters")
         lines.append("")
         for hit in sorted(vocab["hits"], key=lambda x: x["count"], reverse=True)[:8]:
             lines.append(f"- **{hit['phrase']}** ×{hit['count']}：{hit['reason']}")
@@ -371,159 +371,159 @@ def build_text_report(result: Dict, chapter_name: str) -> str:
                 lines.append(f"  > {ex}")
         lines.append("")
 
-    # 弱化副词
+    # Weakening adverbs
     adverb = result["details"]["weak_adverbs"]
     if adverb["flagged"]:
-        lines.append("## 弱化副词泛滥")
-        lines.append(f"密度：每千字 {adverb['density_per_thousand']} 次（阈值 {WEAK_ADVERB_DENSITY_THRESHOLD}）")
+        lines.append("## Weakening Adverb Proliferation")
+        lines.append(f"Density: {adverb['density_per_thousand']} times per thousand characters (threshold {WEAK_ADVERB_DENSITY_THRESHOLD})")
         top_adverbs = sorted(adverb["hits"], key=lambda x: x["count"], reverse=True)[:6]
         lines.append(", ".join(f'{h["adverb"]}(×{h["count"]})' for h in top_adverbs))
         lines.append("")
 
-    # 意义膨胀
+    # Significance inflation
     sig = result["details"]["significance_inflation"]
     if sig["hits"]:
-        lines.append("## 意义膨胀词")
+        lines.append("## Significance Inflation Words")
         for hit in sig["hits"]:
             lines.append(f"- **{hit['phrase']}** ×{hit['count']}：{hit['reason']}")
         lines.append("")
 
-    # 段落结构
+    # Paragraph structure
     es = result["details"]["essay_structure"]
     if es["ratio"] > 0.25:
-        lines.append("## 论文式段落结构（总结句开头）")
-        lines.append(f"{es['flagged_paragraphs']}/{es['total_paragraphs']} 段以总结/评论句开头（论文写法入侵小说）")
+        lines.append("## Essay-style Paragraph Structure (summary sentence opening)")
+        lines.append(f"{es['flagged_paragraphs']}/{es['total_paragraphs']} paragraphs open with summary/comment sentences (essay writing invading fiction)")
         for ex in es["examples"]:
-            lines.append(f"- 示例：{ex}")
+            lines.append(f"- Example: {ex}")
         lines.append("")
 
-    # 排比三连
+    # Parallel three-part
     trio = result["details"]["rule_of_three"]
     if trio["count"] > 3:
-        lines.append("## 排比三连过多")
-        lines.append(f"发现 {trio['count']} 处三元排比结构")
+        lines.append("## Too Many Parallel Three-Part Constructions")
+        lines.append(f"Found {trio['count']} instances of three-part parallel structure")
         for ex in trio["examples"][:2]:
             lines.append(f"- {ex}")
         lines.append("")
 
-    lines.append("## 润色建议")
-    lines.append("执行 `/校稿` 时，请优先针对以上问题进行两遍式润色：")
-    lines.append("1. **第一遍**：逐一清除上述模式，替换为具体行动/对话/细节")
-    lines.append('2. **审查**：问自己\u300c哪些地方还是明显AI生成的\uff1f\u300d并列出')
-    lines.append("3. **第二遍**：针对审查列出的剩余问题再次修改")
+    lines.append("## Polishing Suggestions")
+    lines.append("When executing `/校稿`, prioritize two-pass polishing for the above issues:")
+    lines.append("1. **First pass**: Replace all above patterns with specific actions/dialogue/details")
+    lines.append('2. **Review**: Ask yourself "Which parts still feel obviously AI-generated?" and list them')
+    lines.append("3. **Second pass**: Modify again targeting remaining issues identified in review")
 
     return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
-# 两遍式润色 Prompt 生成
+# Two-pass Polishing Prompt Generation
 # ---------------------------------------------------------------------------
 
 _HUMANIZE_PROMPT_TEMPLATE = """\
-## 校稿任务：去除 AI 写作痕迹
+## Editing Task: Remove AI Writing Traces
 
-本章已通过自动检测，发现以下 AI 写作特征：
+This chapter has passed automatic detection and the following AI writing characteristics were found:
 
 {issue_summary}
 
 ---
 
-### 执行方式：两遍式润色（来源：humanizer 方法论）
+### Execution Method: Two-pass Polishing (Source: humanizer methodology)
 
-**第一遍：清除 AI 模式**
+**First Pass: Clear AI Patterns**
 
-针对以下类型逐段修改，用具体细节替代抽象套话：
+Modify paragraph by paragraph against the following types, replacing abstract clichés with specific details:
 
-**A. AI高频词替换原则**
+**A. AI High-Frequency Vocabulary Replacement Principles**
 {vocab_guidance}
 
-**B. 弱化副词瘦身**
+**B. Weakening Adverb Trimming**
 {adverb_guidance}
 
-**C. 意义膨胀处理**
-把"意义深远"、"可谓"、"前所未有"等改为具体事实描述。
-例：~~"这次交谈意义深远"~~ → "那天之后，他改变了用兵的节奏"
+**C. Significance Inflation Handling**
+Replace "意义深远" (far-reaching significance), "可谓" (can be said to be), "前所未有" (unprecedented) etc. with specific factual descriptions.
+Example: ~~"这次交谈意义深远"~~ → "那天之后，他改变了用兵的节奏"
 
-**D. 段落结构调整**
-消除以总结句开头的段落，改为以行动/感知/对话开头。
-例：~~"不难看出，他已下定决心"~~ → 直接写他做了什么。
+**D. Paragraph Structure Adjustment**
+Eliminate paragraphs opening with summary sentences;改为 open with action/perception/dialogue instead.
+Example: ~~"不难看出，他已下定决心"~~ → Write directly what he did.
 
-**E. 通用结论改写**
-末尾不用"未来可期"类结语，改为具体的悬念或行动钩子。
-
----
-
-**第二遍：审查剩余 AI 味**
-
-完成第一遍后，问自己：
-> "这段文字哪些地方还是明显 AI 生成的感觉？"
-
-列出 3-5 条具体问题，然后针对它们再次修改。
-
-判断标准（有以下任一即需修改）：
-- 每句话节奏相同、长度相近
-- 情感表达依赖套话而非具体细节
-- 角色反应都是被动的（"不禁"、"不由"）
-- 段落间过渡依赖"此时"、"与此同时"
+**E. General Conclusion Rewriting**
+Do not end with "未来可期" (promising future) type conclusions;改为 use specific suspense or action hooks.
 
 ---
 
-### 输出要求
+**Second Pass: Review Remaining AI Feel**
 
-1. 给出润色后的完整章节正文
-2. 不改变剧情内容，只改写表达方式
-3. 保留所有章节结构（标题等）
-4. 修改量建议：字数变化控制在 ±10% 以内
+After completing the first pass, ask yourself:
+> "Which parts of this text still feel obviously AI-generated?"
+
+List 3-5 specific issues, then modify again targeting them.
+
+Judgment criteria (any of the following indicates modification needed):
+- Every sentence has the same rhythm and similar length
+- Emotional expression relies on clichés rather than specific details
+- Character reactions are all passive ("不禁", "不由")
+- Paragraph transitions rely on "此时" (at this time), "与此同时" (meanwhile)
+
+---
+
+### Output Requirements
+
+1. Provide the complete polished chapter body text
+2. Do not change the plot content, only rewrite the expression
+3. Preserve all chapter structure (headings, etc.)
+4. Suggested modification volume: keep word count changes within ±10%
 """
 
 _NO_ISSUES_PROMPT = """\
-## 校稿任务：精细润色
+## Editing Task: Fine Polishing
 
-本章经自动检测，未发现显著 AI 写作痕迹，整体质量良好。
+This chapter passed automatic detection and no significant AI writing traces were found; overall quality is good.
 
-执行精细润色：
+Execute fine polishing:
 
-1. **节奏检查**：阅读每段，找出连续三句以上等长的段落并调整节奏
-2. **具体化检查**：把任何模糊的情感/状态描述替换为具体行动或细节
-3. **结尾钩子**：末段是否留有足够的悬念或行动张力
-4. **个人风格**：全篇是否有独特的叙事声音，还是过于"中性标准"
+1. **Rhythm Check**: Read each paragraph, find paragraphs with three or more consecutive equal-length sentences and adjust the rhythm
+2. **Concretization Check**: Replace any vague emotional/state descriptions with specific actions or details
+3. **Ending Hook**: Does the final paragraph leave enough suspense or action tension?
+4. **Personal Style**: Does the entire piece have a unique narrative voice, or is it too "neutral standard"?
 
-完成后输出修改版本（变化量建议控制在 5% 以内）。
+Output the modified version after completion (suggested changes within 5%).
 """
 
 
 def build_humanize_prompt(result: Dict, chapter_text: str) -> str:
-    """根据检测结果生成两遍式润色 prompt。"""
+    """Generates a two-pass polishing prompt based on detection results."""
     if not result["issues"]:
         return _NO_ISSUES_PROMPT
 
-    # 汇总问题
+    # Summarize issues
     issue_lines = "\n".join(f"- {issue}" for issue in result["issues"])
 
-    # AI词汇具体指导
+    # AI vocabulary specific guidance
     vocab = result["details"]["ai_vocab"]
     if vocab["hits"]:
         top = sorted(vocab["hits"], key=lambda x: x["count"], reverse=True)[:6]
         vocab_lines = []
         for h in top:
-            vocab_lines.append(f"- **{h['phrase']}**（×{h['count']}）：{h['reason']}")
+            vocab_lines.append(f"- **{h['phrase']}** (×{h['count']}): {h['reason']}")
             if h["examples"]:
-                vocab_lines.append(f'  出现示例："{h["examples"][0]}"')
+                vocab_lines.append(f'  Example: "{h["examples"][0]}"')
         vocab_guidance = "\n".join(vocab_lines)
     else:
-        vocab_guidance = "本章未发现 AI 高频词问题。"
+        vocab_guidance = "No AI high-frequency vocabulary issues found in this chapter."
 
-    # 副词指导
+    # Adverb guidance
     adverb = result["details"]["weak_adverbs"]
     if adverb["flagged"]:
         top_adv = sorted(adverb["hits"], key=lambda x: x["count"], reverse=True)[:5]
         adverb_guidance = (
-            f"以下弱化副词密度过高（每千字 {adverb['density_per_thousand']} 次）：\n"
+            f"The following weakening adverbs are too dense ({adverb['density_per_thousand']} times per thousand characters):\n"
             + "\n".join(f'- {h["adverb"]} ×{h["count"]}' for h in top_adv)
-            + "\n删除大部分，保留确有必要的即可。"
+            + "\nDelete most of them, keeping only those that are truly necessary."
         )
     else:
-        adverb_guidance = "弱化副词密度正常，保持即可。"
+        adverb_guidance = "Weakening adverb density is normal; keep as is."
 
     prompt = _HUMANIZE_PROMPT_TEMPLATE.format(
         issue_summary=issue_lines,
@@ -531,12 +531,12 @@ def build_humanize_prompt(result: Dict, chapter_text: str) -> str:
         adverb_guidance=adverb_guidance,
     )
 
-    # 附上章节正文（截断超长内容）
+    # Append chapter text (truncate if too long)
     chapter_preview = chapter_text[:8000] if len(chapter_text) > 8000 else chapter_text
     if len(chapter_text) > 8000:
-        chapter_preview += "\n\n[... 正文已截断，请使用 Read 工具读取完整文件 ...]"
+        chapter_preview += "\n\n[... Chapter body truncated, please use the Read tool to read the full file ...]"
 
-    return prompt + f"\n\n---\n\n### 待润色章节正文\n\n{chapter_preview}"
+    return prompt + f"\n\n---\n\n### Chapter Text to Be Polished\n\n{chapter_preview}"
 
 
 # ---------------------------------------------------------------------------
@@ -546,7 +546,7 @@ def build_humanize_prompt(result: Dict, chapter_text: str) -> str:
 def _load_chapter(chapter_file: str) -> Tuple[str, Path]:
     path = Path(chapter_file).expanduser().resolve()
     if not path.exists():
-        print(json.dumps({"ok": False, "error": f"文件不存在: {chapter_file}"}), flush=True)
+        print(json.dumps({"ok": False, "error": f"File does not exist: {chapter_file}"}), flush=True)
         sys.exit(1)
     try:
         text = path.read_text(encoding="utf-8")
@@ -595,19 +595,19 @@ def cmd_prompt(args: argparse.Namespace) -> None:
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        description="文本人性化处理器 - 检测并消除 AI 写作痕迹"
+        description="Text Humanizer - Detects and eliminates AI writing traces"
     )
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    p_detect = sub.add_parser("detect", help="检测章节中的 AI 写作模式，输出 JSON 报告")
-    p_detect.add_argument("--chapter-file", required=True, help="章节文件路径")
-    p_detect.add_argument("--project-root", default=None, help="项目根目录（可选）")
+    p_detect = sub.add_parser("detect", help="Detect AI writing patterns in chapter, output JSON report")
+    p_detect.add_argument("--chapter-file", required=True, help="Chapter file path")
+    p_detect.add_argument("--project-root", default=None, help="Project root directory (optional)")
 
-    p_report = sub.add_parser("report", help="输出人类可读的 Markdown 检测报告")
-    p_report.add_argument("--chapter-file", required=True, help="章节文件路径")
+    p_report = sub.add_parser("report", help="Output human-readable Markdown detection report")
+    p_report.add_argument("--chapter-file", required=True, help="Chapter file path")
 
-    p_prompt = sub.add_parser("prompt", help="生成两遍式润色 prompt 供 Claude 执行")
-    p_prompt.add_argument("--chapter-file", required=True, help="章节文件路径")
+    p_prompt = sub.add_parser("prompt", help="Generate two-pass polishing prompt for Claude to execute")
+    p_prompt.add_argument("--chapter-file", required=True, help="Chapter file path")
 
     return p.parse_args()
 

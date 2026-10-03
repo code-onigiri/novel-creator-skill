@@ -1,92 +1,92 @@
-# Novel Claude AI v1.0.0 用户指南
+# Novel Claude AI v1.0.0 User Guide
 
-## 目录
+## Table of Contents
 
-1. [快速上手（5分钟开始写书）](#1-快速上手)
-2. [安装配置](#2-安装配置)
-3. [多LLM配置](#3-多llm配置)
-4. [新手三命令](#4-新手三命令)
-5. [联网调研](#5-联网调研)
-6. [一键写书](#6-一键写书)
-7. [中途改纲续写](#7-中途改纲续写)
-8. [进阶用法](#8-进阶用法)
-9. [常见问题](#9-常见问题)
+1. [Quick Start (Start Writing in 5 Minutes)](#1-quick-start)
+2. [Installation & Configuration](#2-installation-configuration)
+3. [Multi-LLM Configuration](#3-multi-llm-configuration)
+4. [Three Essential Commands for Beginners](#4-three-essential-commands-for-beginners)
+5. [Online Research](#5-online-research)
+6. [One-Click Novel Writing](#6-one-click-novel-writing)
+7. [Outline Revision & Resume Writing](#7-outline-revision--resume-writing)
+8. [Advanced Usage](#8-advanced-usage)
+9. [Frequently Asked Questions](#9-frequently-asked-questions)
 
 ---
 
-## 1. 快速上手
+## 1. Quick Start
 
-三步开始写你的第一本小说：
+Start writing your first novel in three steps:
 
 ```bash
-# 步骤1：安装技能（以 Claude Code 为例）
+# Step 1: Install the skill (using Claude Code as an example)
 bash scripts/install-portable-skill.sh --tool claude-code --force
 
-# 步骤2：一键开书
-/一键开书 书名="穿越大唐之我是皇帝" 题材=历史 剧情种子="现代大学生穿越到唐朝成为太子，利用现代知识治国平天下"
+# Step 2: One-click novel initialization
+/one-click-novel-init book-title="Transmigrating to the Tang Dynasty as Emperor" genre=historical plot-seed="Modern university student transmigrates to the Tang Dynasty as the Crown Prince, using modern knowledge to govern and pacify the world"
 
-# 步骤3：继续写
-/继续写 "太子在朝堂上首次发言，引起百官震动"
+# Step 3: Continue writing
+/continue-write "The Crown Prince makes his first court statement, shocking all the officials"
 ```
 
-就这么简单。系统会自动完成世界观建模、知识库初始化、章节写作、门禁校验等全流程。
+That's it. The system automatically handles the full pipeline: worldbuilding, knowledge base initialization, chapter writing, and gate checks.
 
 ---
 
-## 2. 安装配置
+## 2. Installation & Configuration
 
-### 支持的 AI 工具
+### Supported AI Tools
 
-| 工具 | 安装命令 |
-|------|----------|
+| Tool | Installation Command |
+|------|----------------------|
 | Claude Code | `bash scripts/install-portable-skill.sh --tool claude-code --force` |
 | OpenCode | `bash scripts/install-portable-skill.sh --tool opencode --force` |
 | Codex | `bash scripts/install-portable-skill.sh --tool codex --force` |
 | Gemini CLI | `bash scripts/install-portable-skill.sh --tool gemini-cli --force` |
 | Antigravity | `bash scripts/install-portable-skill.sh --tool antigravity --force` |
 
-### 安装验证
+### Installation Verification
 
-安装后在对话中输入 `/一键开书` 或 `/继续写`，如果系统识别命令并提示参数，说明安装成功。
+After installation, input `/one-click-novel-init` or `/continue-write` in the dialogue. If the system recognizes the command and prompts for parameters, the installation was successful.
 
-### 目录结构说明
+### Directory Structure Description
 
-安装后你的小说项目目录结构如下：
+After installation, your novel project directory structure is as follows:
 
 ```
-你的小说项目/
-├── 00_memory/            # 记忆系统
-│   ├── novel_plan.md     # 主线计划（写前必读）
-│   ├── novel_state.md    # 当前状态
-│   └── retrieval/        # 检索索引
-├── 02_knowledge_base/    # 知识库（设定+资料）
-├── 03_manuscript/        # 章节正文
-├── 04_editing/           # 编辑与门禁
-└── .flow/                # 执行状态（内部）
+your-novel-project/
+├── 00_memory/            # Memory System
+│   ├── novel_plan.md     # Main Plan (must read before writing)
+│   ├── novel_state.md    # Current State
+│   └── retrieval/        # Retrieval Index
+├── 02_knowledge_base/    # Knowledge Base (worldbuilding + research)
+├── 03_manuscript/        # Chapter Text
+├── 04_editing/           # Editing & Gate Checks
+└── .flow/                # Execution State (internal)
 ```
 
 ---
 
-## 3. 多LLM配置
+## 3. Multi-LLM Configuration
 
-v8.0 支持多种大模型，你可以根据需要选择。
+v8.0 supports multiple large language models; you can choose the one that suits your needs.
 
-### 配置文件
+### Configuration File
 
-在小说项目根目录创建 `.novel_writer_config.yaml`（从模板复制）：
+Create `.novel_writer_config.yaml` in the novel project root (copy from template):
 
 ```bash
-cp scripts/novel_writer_config.template.yaml 你的项目目录/.novel_writer_config.yaml
+cp scripts/novel_writer_config.template.yaml your-project-directory/.novel_writer_config.yaml
 ```
 
-### 支持的 LLM 及配置
+### Supported LLMs and Configuration
 
-#### OpenAI（默认）
+#### OpenAI (Default)
 
 ```yaml
 ai_provider: openai
 model: gpt-4
-# 设置环境变量 OPENAI_API_KEY 或在此填写
+# Set environment variable OPENAI_API_KEY or fill in here
 openai_api_key: "sk-..."
 ```
 
@@ -95,23 +95,23 @@ openai_api_key: "sk-..."
 ```yaml
 ai_provider: anthropic
 model: claude-3-sonnet-20240229
-# 设置环境变量 ANTHROPIC_API_KEY
+# Set environment variable ANTHROPIC_API_KEY
 ```
 
 #### Kimi 2.5 (Moonshot)
 
 ```yaml
 ai_provider: kimi
-model: moonshot-v1-auto  # 也可选 moonshot-v1-128k
-# 设置环境变量 MOONSHOT_API_KEY
+model: moonshot-v1-auto  # Also optional: moonshot-v1-128k
+# Set environment variable MOONSHOT_API_KEY
 ```
 
-#### GLM-5 (智谱)
+#### GLM-5 (Zhipu)
 
 ```yaml
 ai_provider: glm
-model: glm-4-plus  # 也可选 glm-4, glm-4-flash
-# 设置环境变量 GLM_API_KEY
+model: glm-4-plus  # Also optional: glm-4, glm-4-flash
+# Set environment variable GLM_API_KEY
 ```
 
 #### MiniMax 2.5
@@ -119,10 +119,10 @@ model: glm-4-plus  # 也可选 glm-4, glm-4-flash
 ```yaml
 ai_provider: minimax
 model: MiniMax-Text-01
-# 设置环境变量 MINIMAX_API_KEY
+# Set environment variable MINIMAX_API_KEY
 ```
 
-#### 本地模型
+#### Local Model
 
 ```yaml
 ai_provider: local
@@ -130,7 +130,7 @@ model: qwen2.5:72b
 local_api_url: "http://localhost:11434/api/generate"
 ```
 
-#### 任意 OpenAI 兼容 API
+#### Any OpenAI-Compatible API
 
 ```yaml
 ai_provider: custom
@@ -139,10 +139,10 @@ model: your-model-name
 api_key: "your-api-key"
 ```
 
-### 环境变量速查
+### Environment Variable Quick Reference
 
-| LLM | 环境变量 |
-|-----|----------|
+| LLM | Environment Variable |
+|-----|----------------------|
 | OpenAI | `OPENAI_API_KEY` |
 | Anthropic | `ANTHROPIC_API_KEY` |
 | Kimi | `MOONSHOT_API_KEY` |
@@ -151,195 +151,195 @@ api_key: "your-api-key"
 
 ---
 
-## 4. 新手三命令
+## 4. Three Essential Commands for Beginners
 
-### `/一键开书`
+### `/one-click-novel-init`
 
-初始化一个完整的小说项目。
+Initialize a complete novel project.
 
 ```
-/一键开书 书名="书名" 题材=历史 剧情种子="一句话概述核心剧情"
+/one-click-novel-init book-title="<book title>" genre=<genre> plot-seed="<one-sentence summary of core plot>"
 ```
 
-**执行内容**：
-1. 创建项目目录结构
-2. 生成主线计划（novel_plan.md）
-3. 建立知识库骨架
-4. 准备第一章占位文件
-5. 构建初始检索索引
+**Execution contents:**
+1. Create project directory structure
+2. Generate main plan (`novel_plan.md`)
+3. Build knowledge base skeleton
+4. Prepare first chapter placeholder file
+5. Build initial retrieval index
 
-**等效脚本命令**：
+**Equivalent script command:**
 ```bash
 python3 scripts/novel_flow_executor.py one-click \
-  --project-root ./我的小说 --title "书名" --genre 历史 --idea "剧情种子"
+  --project-root ./my-novel --title "<book title>" --genre <genre> --idea "<plot seed>"
 ```
 
-### `/继续写`
+### `/continue-write`
 
-执行完整的写作-校验流程。
+Execute the complete writing-and-validation flow.
 
 ```
-/继续写 "本章要写的剧情方向"
+/continue-write "<plot direction for this chapter>"
 ```
 
-**执行内容**（全自动串联）：
-1. RAG 检索相关章节上下文
-2. 生成/补全章节正文
-3. 更新记忆 → 检查一致性 → 风格校准 → 校稿
-4. 门禁检查（passed=true 才解锁下一章）
-5. 更新检索索引
+**Execution contents** (fully automated chain):
+1. RAG retrieval of relevant chapter context
+2. Generate/complete chapter text
+3. Update memory → Check consistency → Style calibration → Copyedit
+4. Gate check (`passed=true` required to unlock the next chapter)
+5. Update retrieval index
 
-**高级参数**：
+**Advanced parameters:**
 ```bash
 python3 scripts/novel_flow_executor.py continue-write \
-  --project-root ./我的小说 \
-  --query "太子在朝堂上首次发言" \
-  --candidate-k 12 \          # RAG 粗筛候选数
-  --max-auto-retry-rounds 2 \ # 门禁失败自动重试次数
-  --rollback-on-failure \      # 失败时回滚
-  --auto-research              # 写前自动检测知识缺口
+  --project-root ./my-novel \
+  --query "The Crown Prince makes his first court statement" \
+  --candidate-k 12 \          # RAG coarse candidate count
+  --max-auto-retry-rounds 2 \ # Maximum auto-retry rounds on gate failure
+  --rollback-on-failure \      # Rollback on failure
+  --auto-research              # Automatically detect knowledge gaps before writing
 ```
 
-### `/修复本章`
+### `/repair-chapter`
 
-门禁失败后的修复命令。
+Repair command after a gate check failure.
 
 ```
-/修复本章
+/repair-chapter
 ```
 
-系统根据 `repair_plan.md` 中的修复建议，自动修复章节问题并重新提交门禁。
+The system automatically repairs chapter issues based on the repair suggestions in `repair_plan.md` and resubmits for gate check.
 
 ---
 
-## 5. 联网调研
+## 5. Online Research
 
-联网调研是 v8.0 新增的**通用能力**，在任何写作场景中都可使用。
+Online research is a v8.0 **universal capability** that can be used in any writing scenario.
 
-### 手动调研
+### Manual Research
 
 ```
-/联网调研 唐朝安史之乱
+/online-research Tang Dynasty An Lushan Rebellion
 ```
 
-系统会：
-1. 根据题材自动生成搜索关键词列表
-2. 逐条联网搜索
-3. 将结果存入知识库对应分类文件
+The system will:
+1. Automatically generate a list of search keywords based on genre
+2. Search online for each keyword
+3. Store results in the corresponding knowledge base category file
 
-### 调研深度
+### Research Depth
 
-| 深度 | 关键词数 | 适用场景 |
-|------|----------|----------|
-| `quick` | 5 | 日常补充、单一概念查询 |
-| `standard` | 15 | 开书前调研（默认） |
-| `deep` | 30 | 重大设定补充、复杂世界观 |
+| Depth | Number of Keywords | Applicable Scenario |
+|-------|-------------------|---------------------|
+| `quick` | 5 | Daily supplements, single concept queries |
+| `standard` | 15 | Pre-book research (default) |
+| `deep` | 30 | Major worldbuilding supplements, complex worlds |
 
-### 脚本直接使用
+### Direct Script Usage
 
 ```bash
-# 生成搜索关键词
+# Generate search keywords
 python3 scripts/research_agent.py keywords \
-  --genre 历史 --topic "唐朝安史之乱"
+  --genre historical --topic "Tang Dynasty An Lushan Rebellion"
 
-# 生成完整调研计划
+# Generate full research plan
 python3 scripts/research_agent.py plan \
-  --genre 历史 --topic "唐朝安史之乱" \
-  --project-root ./我的小说 --depth standard
+  --genre historical --topic "Tang Dynasty An Lushan Rebellion" \
+  --project-root ./my-novel --depth standard
 
-# 检测知识库缺口
+# Detect knowledge base gaps
 python3 scripts/research_agent.py gaps \
-  --project-root ./我的小说 \
-  --chapter-goal "主角面临兵变危机"
+  --project-root ./my-novel \
+  --chapter-goal "Protagonist faces a mutiny crisis"
 
-# 存储调研结果
+# Store research results
 python3 scripts/research_agent.py store \
-  --project-root ./我的小说 \
-  --category "历史背景" \
-  --content "安史之乱发生于755年..." \
+  --project-root ./my-novel \
+  --category "Historical Background" \
+  --content "The An Lushan Rebellion occurred in 755..." \
   --source "https://example.com"
 ```
 
-### 知识库分类规则
+### Knowledge Base Category Rules
 
-| 类别关键词 | 存储文件 |
-|-----------|---------|
-| 世界观、体系、设定 | `02_knowledge_base/10_worldbuilding.md` |
-| 历史、地理、制度、背景 | `02_knowledge_base/11_research_data.md` |
-| 写作手法、风格 | `02_knowledge_base/12_style_skills.md` |
-| 其他参考、分析 | `02_knowledge_base/13_reference_materials.md` |
+| Category Keywords | Storage File |
+|-------------------|-------------|
+| Worldbuilding, systems, settings | `02_knowledge_base/10_worldbuilding.md` |
+| History, geography, institutions, background | `02_knowledge_base/11_research_data.md` |
+| Writing techniques, style | `02_knowledge_base/12_style_skills.md` |
+| Other references, analysis | `02_knowledge_base/13_reference_materials.md` |
 
-### 与 `/继续写` 联动
+### Linked with `/continue-write`
 
-使用 `--auto-research` 参数，系统在每章写作前自动检测知识缺口：
+Using the `--auto-research` parameter, the system automatically detects knowledge gaps before each chapter:
 
 ```bash
 python3 scripts/novel_flow_executor.py continue-write \
-  --project-root ./我的小说 \
-  --query "太子出征西域" \
+  --project-root ./my-novel \
+  --query "The Crown Prince campaigns in the Western Regions" \
   --auto-research
 ```
 
-### 适配不同工具
+### Adaptation for Different Tools
 
-- **Claude Code**：直接使用 WebSearch 工具联网搜索
-- **OpenCode / Codex**：通过内置搜索能力执行
-- **其他工具**：输出关键词列表，用户手动搜索后通过 `store` 命令存储
+- **Claude Code**: Use the WebSearch tool directly for online searches
+- **OpenCode / Codex**: Execute through built-in search capabilities
+- **Other tools**: Output keyword list; user searches manually and stores via the `store` command
 
 ---
 
-## 6. 一键写书
+## 6. One-Click Novel Writing
 
-一键写书是 v8.0 的核心新功能，用户只需提供简介和目标字数，系统全自动完成整本书。
+One-Click Novel Writing is v8.0's core new feature — users only need to provide a synopsis and target word count, and the system automatically completes the entire novel.
 
-### 基本用法
+### Basic Usage
 
 ```
-/一键写书 简介="现代青年穿越到唐朝成为太子，利用现代知识改革朝政" 目标字数=200万
+/one-click-writing synopsis="Modern youth transmigrates to the Tang Dynasty as the Crown Prince, using modern knowledge to reform the government" target-chars=2000000
 ```
 
-### 执行流程
+### Execution Flow
 
-1. **解析简介** → 提取题材、核心冲突、主角目标
-2. **基础调研** → 根据题材自动联网搜索背景资料
-3. **一键开书** → 建模、建库、首章准备
-4. **循环写作**（直到目标字数）：
-   - 检测知识缺口 → 联网补充
-   - `/继续写` → 门禁校验
-   - 失败 → 自动修复（最多3次）
-   - 每10章冲刺复盘
-   - 每卷结束输出进度报告
-5. **完成报告** → 全书统计
+1. **Parse synopsis** → Extract genre, core conflict, protagonist goal
+2. **Basic research** → Automatically search online for background materials based on genre
+3. **One-click novel init** → Worldbuilding, database creation, first chapter preparation
+4. **Loop writing** (until target word count reached):
+   - Check knowledge gaps → Fill via online research
+   - `/continue-write` → Gate check
+   - Failure → Auto-repair (up to 3 attempts)
+   - Sprint review every 10 chapters
+   - Output progress report at the end of each volume
+5. **Completion report** → Full book statistics
 
-### 断点续写
+### Breakpoint Resume
 
-写作中断后再次执行 `/一键写书`，系统自动从断点恢复，不会重复已完成的章节。
+After a writing interruption, execute `/one-click-writing` again; the system automatically detects the breakpoint and resumes from the last position.
 
-### 进度查看
+### View Progress
 
 ```bash
-# 查看当前进度
-python3 scripts/auto_novel_writer.py report --project-root ./我的小说
+# View current progress
+python3 scripts/auto_novel_writer.py report --project-root ./my-novel
 
-# 查看详细状态（JSON格式）
-python3 scripts/auto_novel_writer.py progress --project-root ./我的小说
+# View detailed status (JSON format)
+python3 scripts/auto_novel_writer.py progress --project-root ./my-novel
 ```
 
-### 生成执行计划（不实际执行）
+### Generate Execution Plan (without executing)
 
 ```bash
 python3 scripts/auto_novel_writer.py plan \
-  --synopsis "穿越唐朝太子" \
+  --synopsis "Transmigrating Tang Dynasty Crown Prince" \
   --target-chars 2000000 \
-  --genre 历史 \
+  --genre historical \
   --research-depth standard
 ```
 
-### 更新进度（供外部脚本调用）
+### Update Progress (for external script calls)
 
 ```bash
 python3 scripts/auto_novel_writer.py progress \
-  --project-root ./我的小说 \
+  --project-root ./my-novel \
   --chapter 15 \
   --chars-added 3500 \
   --gate-passed
@@ -347,193 +347,193 @@ python3 scripts/auto_novel_writer.py progress \
 
 ---
 
-## 7. 中途改纲续写
+## 7. Outline Revision & Resume Writing
 
-v1.0.0 新增功能，当故事写到中途需要调整主线走向时使用。
+New in v1.0.0. Use when the main plot direction needs adjustment mid-story.
 
-### 什么时候需要改纲
+### When to Revise the Outline
 
-- 发现当前大纲的某段剧情走向不对，需要修改 `novel_plan.md`
-- 预计修改会影响已标注在知识图谱中的角色状态、事件记录或伏笔
-- 修改完 `novel_plan.md` 后，需要在重新开始写作**之前**对齐系统的三层索引
+- Found that a section of the current outline has the wrong plot direction; need to modify `novel_plan.md`
+- Modifications are expected to affect character states, event records, or foreshadowing already tagged in the knowledge graph
+- After modifying `novel_plan.md`, you need to align the system's three-layer indexes **before** resuming writing
 
-> ⚠️ 直接修改 `novel_plan.md` 而不执行 `/改纲续写` 会导致大纲锚点与实际规划不一致，使后续门禁配额校验失准。
+> ⚠️ Directly modifying `novel_plan.md` without executing `/revise-outline` will cause the outline anchors to be inconsistent with the actual plan, making subsequent gate quota verification inaccurate.
 
-### 使用步骤
+### Usage Steps
 
-**步骤 1**：编辑主线计划文件
+**Step 1**: Edit the main plan file
 
 ```bash
-# 直接编辑改纲内容
-vim 你的小说项目/00_memory/novel_plan.md
+# Directly edit the outline revision content
+vim your-novel-project/00_memory/novel_plan.md
 ```
 
-修改你希望变更的剧情章节、结局设定或情节节点。
+Modify the plot chapters, ending settings, or plot nodes you wish to change.
 
-**步骤 2**：执行改纲续写命令
+**Step 2**: Execute the outline revision command
 
 ```
-/改纲续写 --from-chapter=<起始章节号> --change-description="<说明>"
+/revise-outline --from-chapter=<starting chapter number> --change-description="<description>"
 ```
 
-等效脚本：
+Equivalent script:
 
 ```bash
 python3 scripts/novel_flow_executor.py revise-outline \
-  --project-root ./你的小说 \
+  --project-root ./your-novel \
   --from-chapter 35 \
-  --change-description "第35章起调整主线：反派提前登场，男主阵营裂变"
+  --change-description "Adjust main plot from Chapter 35 onward: antagonist appears early, protagonist faction splits"
 ```
 
-**步骤 3**：查阅影响报告
+**Step 3**: Review the impact report
 
-改纲完成后，系统在项目目录生成 `00_memory/revise_outline_report.md`，内容包含：
-- 本次改纲涉及的卷数与总章节数
-- 知识图谱中被标记为 `cascade_pending=True` 的节点与边数量
-- RAG 索引重建状态
+After the outline revision is complete, the system generates `00_memory/revise_outline_report.md` in the project directory, containing:
+- Number of volumes and total chapters involved in this revision
+- Count of nodes and edges in the knowledge graph marked as `cascade_pending=True`
+- RAG index rebuild status
 
-**步骤 4**：处理级联节点（可选但推荐）
+**Step 4**: Handle cascade nodes (optional but recommended)
 
-对 `cascade_pending=True` 的节点，手动审查其记录的角色状态、事件信息是否与新大纲一致，必要时更新后将 `cascade_pending` 恢复为 `False`。
+For nodes marked `cascade_pending=True`, manually review whether their recorded character states and event information are consistent with the new outline. If so, update and then set `cascade_pending` back to `False`.
 
-**步骤 5**：恢复正常写作
+**Step 5**: Resume normal writing
 
 ```
-/继续写 "（本次改纲后的第一章新剧情）"
+/continue-write "（First new plot after this outline revision）"
 ```
 
-### 执行结果说明
+### Execution Result Explanation
 
-| 字段 | 含义 |
-|------|------|
-| `ok: true` | 锚点重算成功且报告已写入，可以继续写作 |
-| `ok: false` | 锚点重算失败（通常是 `novel_plan.md` 格式有误），需修正后重试 |
-| `cascade.ok: false` 但 `ok: true` | 图谱标记软失败，不阻断流程，建议手动检查图谱文件 |
-| `rag.ok: false` 但 `ok: true` | RAG 索引重建软失败，不阻断流程，可手动执行 `/更新剧情索引` |
+| Field | Meaning |
+|-------|---------|
+| `ok: true` | Anchors recalculated successfully and report written, can proceed with writing |
+| `ok: false` | Anchor recalculation failed (usually `novel_plan.md` format error), fix and retry |
+| `cascade.ok: false` but `ok: true` | Knowledge graph marking soft failure, does not block the flow, suggest manually checking the graph file |
+| `rag.ok: false` but `ok: true` | RAG index rebuild soft failure, does not block the flow, can manually execute `/update-plot-index` |
 
-### 备份与回滚
+### Backup and Rollback
 
-改纲前，系统自动备份原锚点文件至 `.flow/backup_anchors_<时间戳>.json`。如需回滚改纲：
+Before the outline revision, the system automatically backs up the original anchor file to `.flow/backup_anchors_<timestamp>.json`. If you need to roll back the outline revision:
 
 ```bash
-# 查看备份列表
+# View backup list
 ls .flow/backup_anchors_*.json
 
-# 手动恢复
+# Manual restore
 cp .flow/backup_anchors_20260309_143022.json 00_memory/outline_anchors.json
 ```
 
 ---
 
-## 8. 进阶用法
+## 8. Advanced Usage
 
-### 风格定制
+### Style Customization
 
-在 `.novel_writer_config.yaml` 中调整生成参数：
+Adjust generation parameters in `.novel_writer_config.yaml`:
 
 ```yaml
-temperature: 0.8    # 0.6=保守稳定 0.8=平衡 1.0=创意发散
-max_tokens: 4000    # 单次生成上限
-min_chapter_chars: 3000   # 章节最低字数
-target_chapter_chars: 3500  # 章节目标字数
-style_consistency: true     # 风格一致性检测
+temperature: 0.8    # 0.6=Conservative/stable 0.8=Balanced 1.0=Creative divergent
+max_tokens: 4000    # Single generation max tokens
+min_chapter_chars: 3000   # Minimum chapter characters
+target_chapter_chars: 3500  # Target chapter characters
+style_consistency: true     # Style consistency check
 ```
 
-### RAG 检索调优
+### RAG Retrieval Tuning
 
 ```bash
-# 增大候选池提升召回率
+# Increase candidate pool to improve recall
 python3 scripts/novel_flow_executor.py continue-write \
-  --project-root ./我的小说 \
+  --project-root ./my-novel \
   --candidate-k 20 --top-k 6
 
-# 强制重建索引
-python3 scripts/plot_rag_retriever.py build --project-root ./我的小说
+# Force rebuild index
+python3 scripts/plot_rag_retriever.py build --project-root ./my-novel
 
-# 查询特定剧情上下文
+# Query specific plot context
 python3 scripts/plot_rag_retriever.py query \
-  --project-root ./我的小说 \
-  --query "主角与反派的第一次交锋" \
+  --project-root ./my-novel \
+  --query "Protagonist's first clash with the antagonist" \
   --top-k 4
 ```
 
-### 门禁检查
+### Gate Check
 
 ```bash
-# 手动门禁检查
+# Manual gate check
 python3 scripts/chapter_gate_check.py \
-  --project-root ./我的小说 \
-  --chapter-file ./我的小说/03_manuscript/第15章_朝堂风云.md
+  --project-root ./my-novel \
+  --chapter-file ./my-novel/03_manuscript/Chapter15_Court_Intrigue.md
 
-# 查看门禁修复建议
+# View gate repair suggestions
 python3 scripts/gate_repair_plan.py \
-  --project-root ./我的小说 \
-  --chapter-file ./我的小说/03_manuscript/第15章_朝堂风云.md
+  --project-root ./my-novel \
+  --chapter-file ./my-novel/03_manuscript/Chapter15_Court_Intrigue.md
 ```
 
-### 风格指纹
+### Style Fingerprint
 
 ```bash
 python3 scripts/style_fingerprint.py \
-  --project-root ./我的小说
+  --project-root ./my-novel
 ```
 
-### 基线评测
+### Baseline Evaluation
 
 ```bash
 python3 scripts/benchmark_novel_flow.py \
-  --project-root ./我的小说 --rounds 5
+  --project-root ./my-novel --rounds 5
 ```
 
 ---
 
-## 9. 常见问题
+## 9. Frequently Asked Questions
 
-### Q: 安装后命令不生效？
-A: 确认安装脚本输出无错误。重启 AI 工具后重试。检查 SKILL.md 是否被正确链接到工具的 skill 目录。
+### Q: Commands not working after installation?
+A: Confirm the installation script output has no errors. Restart the AI tool and try again. Check that SKILL.md is correctly linked to the tool's skill directory.
 
-### Q: 门禁一直不通过？
-A: 使用 `/修复本章` 自动修复。如果多次失败，检查 `04_editing/gate_artifacts/<章节>/gate_result.json` 查看具体失败原因。常见问题：章节字数不足、缺少对话、一致性冲突。
+### Q: Gate check keeps failing?
+A: Use `/repair-chapter` to auto-repair. If it fails multiple times, check `04_editing/gate_artifacts/<chapter>/gate_result.json` for the specific failure reason. Common issues: insufficient chapter word count, missing dialogue, consistency conflicts.
 
-### Q: 如何切换大模型？
-A: 修改项目根目录的 `.novel_writer_config.yaml`，更改 `ai_provider` 和 `model` 字段。确保对应的 API Key 环境变量已设置。
+### Q: How to switch large language models?
+A: Modify `.novel_writer_config.yaml` in the project root, change the `ai_provider` and `model` fields. Ensure the corresponding API Key environment variable is set.
 
-### Q: 一键写书中断了怎么办？
-A: 直接再次执行 `/一键写书`，系统会自动检测断点并从上次位置恢复。状态保存在 `.flow/auto_write_state.json`。
+### Q: What if One-Click Writing gets interrupted?
+A: Simply execute `/one-click-writing` again; the system automatically detects the breakpoint and resumes from the last position. State is saved in `.flow/auto_write_state.json`.
 
-### Q: 联网调研搜索不到结果？
-A: 检查当前 AI 工具是否支持联网搜索。Claude Code 支持 WebSearch，其他工具可能需要手动搜索后使用 `research_agent.py store` 存储。
+### Q: Online research returning no results?
+A: Check whether the current AI tool supports online search. Claude Code supports WebSearch; other tools may require manual searching followed by storing results via the `store` command of `research_agent.py`.
 
-### Q: 如何查看写作进度？
+### Q: How to view writing progress?
 A:
 ```bash
-# 一键写书进度
-python3 scripts/auto_novel_writer.py report --project-root ./我的小说
+# One-click writing progress
+python3 scripts/auto_novel_writer.py report --project-root ./my-novel
 
-# 基线评测
-python3 scripts/benchmark_novel_flow.py --project-root ./我的小说
+# Baseline evaluation
+python3 scripts/benchmark_novel_flow.py --project-root ./my-novel
 ```
 
-### Q: 知识库文件太大了怎么办？
-A: 知识库文件按类别自动分类。如果单个文件过大，可以手动拆分。调研日志限制为最近 500 条记录。
+### Q: Knowledge base file too large?
+A: Knowledge base files are automatically categorized. If a single file is too large, it can be manually split. Research logs are limited to the most recent 500 entries.
 
-### Q: 如何使用本地模型（如 Ollama）？
+### Q: How to use a local model (e.g., Ollama)?
 A:
 ```yaml
 ai_provider: local
 model: qwen2.5:72b
 local_api_url: "http://localhost:11434/api/generate"
 ```
-确保 Ollama 服务已启动：`ollama serve`
+Ensure the Ollama service is running: `ollama serve`
 
-### Q: 支持哪些题材？
-A: 内置调研维度的题材：历史、玄幻、科幻、都市、仙侠、游戏、悬疑、言情、军事。其他题材使用通用调研维度。
+### Q: What genres are supported?
+A: Built-in research dimensions for genres: historical, xuanhuan, sci-fi, urban, xianxia, gaming, mystery, romance, military. Other genres use the general research dimensions.
 
-### Q: 目标字数设多少合适？
+### Q: What target word count is appropriate?
 A:
-- 短篇试水：5-10万字
-- 中篇：30-50万字
-- 长篇：100-200万字
-- 超长篇：200万字以上
+- Short story trial: 50,000-100,000 characters
+- Medium-length: 300,000-500,000 characters
+- Long novel: 1,000,000-2,000,000 characters
+- Ultra-long novel: Over 2,000,000 characters
 
-系统会自动计算卷/章结构，每章约3500字。
+The system automatically calculates volume/chapter structure, with approximately 3,500 characters per chapter.

@@ -1,21 +1,21 @@
-# 写作发现与修正记录
+# Writing Discoveries and Correction Records
 
-> 记录错误和修正，防止重复犯错。发现问题时写入，会话恢复时读取。
+> Record errors and corrections to prevent repeating mistakes. Write when problems are found, read when session is restored.
 
-## 一致性问题（已修正）
-| 发现时间 | 章节 | 问题描述 | 修正方案 | 状态 |
+## Consistency Issues (Corrected)
+| Discovery Time | Chapter | Problem Description | Correction Plan | Status |
 |----------|------|---------|---------|------|
-<!-- 示例：| 2026-02-13 | 第5章 | 角色A性格突变 | 回调伏笔解释 | ✅已修正 | -->
+<!-- Example: | 2026-02-13 | Chapter 5 | Protagonist A's personality shifted abruptly | Recall foreshadowing to explain | ✅Corrected | -->
 
-## 设定补充（写作中确认）
-| 时间 | 新增设定 | 来源章节 | 已同步到知识库 |
+## Setting Supplements (Confirmed During Writing)
+| Time | New Setting | Source Chapter | Synced to Knowledge Base |
 |------|---------|---------|--------------|
-<!-- 写作过程中临时确认的新设定 -->
+<!-- New settings temporarily confirmed during writing -->
 
-## 风格偏离记录
-| 时间 | 偏离描述 | 修正措施 |
+## Style Deviation Records
+| Time | Deviation Description | Correction Measures |
 |------|---------|---------|
-<!-- AI感过重、风格突变等 -->
+<!-- Too much AI feel, sudden style changes, etc. -->
 
-## 绝不重复的错误
-<!-- 已确认的错误，后续写作中绝对不能再犯 -->
+## Never Repeat Errors
+<!-- Confirmed errors, must never be repeated in subsequent writing -->

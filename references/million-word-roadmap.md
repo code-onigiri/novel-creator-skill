@@ -1,33 +1,33 @@
-# 百万字路线图（执行参考）
+# Million-Word Roadmap (Execution Reference)
 
-## 1. 输入最小集
-- 题材
-- 一句话脑洞
-- 主角目标
-- 核心冲突
-- 预期结局（可暂时模糊）
+## 1. Minimum Input Set
+- Genre
+- One-sentence pitch
+- Protagonist goal
+- Core conflict
+- Expected ending (can be temporarily vague)
 
-## 2. 结构化展开
-1. 一句话脑洞 → 三句话卖点（冲突、代价、爽点）
-2. 三句话卖点 → 三幕十二节点
-3. 十二节点 → 卷级路线（建议 8-12 卷）
-4. 卷级路线 → 章级冲刺（每卷 40-80 章）
+## 2. Structured Expansion
+1. One-sentence pitch → three-sentence hook (conflict, cost, payoff)
+2. Three-sentence hook → three-act twelve-beat structure
+3. Twelve beats → volume-level roadmap (recommended 8-12 volumes)
+4. Volume-level roadmap → chapter-level sprint (40-80 chapters per volume)
 
-## 3. 建议规模（可调）
-- 总字数：200万 - 500万
-- 单章字数：2500 - 4500
-- 每卷字数：20万 - 45万
-- 每10章一次冲刺复盘
+## 3. Suggested Scale (adjustable)
+- Total word count: 2 million - 5 million
+- Characters per chapter: 2500 - 4500
+- Characters per volume: 200,000 - 450,000
+- Sprint review every 10 chapters
 
-## 4. 每10章冲刺模板
-- 本轮目标：
-- 必达剧情点：
-- 必回收伏笔：
-- 风格约束：
-- 风险清单：
-- 验收标准（是否可进入下轮）：
+## 4. Every-10-Chapters Sprint Template
+- This round's goal:
+- Must-reach plot points:
+- Must-recover foreshadowing:
+- Style constraints:
+- Risk list:
+- Acceptance criteria (whether it can proceed to the next round):
 
-## 5. 失控处理
-- 若主线偏离：回滚到 `novel_plan.md` 最近稳定里程碑。
-- 若人物漂移：强制以 `character_tracker.md` 为准重写冲突场景。
-- 若风格飘移：立即执行 `/风格提取` + `/风格迁移`。
+## 5. Derailment Handling
+- If the main plot derails: roll back to the nearest stable milestone in `novel_plan.md`.
+- If characters drift: force rewrite conflict scenes using `character_tracker.md` as the baseline.
+- If style drifts: immediately execute `/style-extract` + `/style-transfer`.

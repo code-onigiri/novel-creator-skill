@@ -1,70 +1,70 @@
-# Novel Creator Skill 质量修复实施计划
+# Novel Creator Skill Quality Fix Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 修复 skill-creator 评审识别的全部遗留问题，使 SKILL.md 达到 skill-forge 高质量标准。
+**Goal:** Fix all outstanding issues identified by the skill-creator review so that SKILL.md meets the skill-forge high-quality standard.
 
-**Architecture:** 三类修复——(1) 补全缺失参考文档；(2) 强化 SKILL.md 结构（Iron Law + Checklist）。所有修改在原工作目录直接执行，无需隔离工作区。
+**Architecture:** Three categories of fixes — (1) Create missing reference documents; (2) Strengthen SKILL.md structure (Iron Law + Checklist). All modifications are executed directly in the working directory, no isolated workspace needed.
 
-**Tech Stack:** Markdown 文档编写，Python 脚本结构了解，SKILL.md skill-forge 规范。
+**Tech Stack:** Markdown document authoring, Python script structure familiarity, SKILL.md skill-forge conventions.
 
 ---
 
-## Task 1：创建 references/humanizer-guide.md
+## Task 1: Create references/humanizer-guide.md
 
 **Files:**
 - Create: `references/humanizer-guide.md`
 
-**内容要求：**
-- `/校稿` 命令的完整使用说明
-- 两遍式润色流程（第一遍：清除AI模式；第二遍：自审+修改）
-- 24类AI模式清单（翻译腔、过度总结、对话同质化等）
-- text_humanizer.py 脚本用法（如存在）
-- 与写作流程的集成说明
+**Content Requirements:**
+- Complete usage instructions for the `/Copy Edit` command
+- Two-pass polishing workflow (Pass 1: Clear AI patterns; Pass 2: Self-review + revision)
+- 24 categories of AI patterns (translationese, over-summarization, dialogue homogenization, etc.)
+- text_humanizer.py script usage (if it exists)
+- Integration notes with the writing workflow
 
 ---
 
-## Task 2：创建 references/editorial-team-protocol.md
+## Task 2: Create references/editorial-team-protocol.md
 
 **Files:**
 - Create: `references/editorial-team-protocol.md`
 
-**内容要求：**
-- 编辑团队架构（总编辑/策划主编/写作特工/反AI编辑/连载核实官）
-- 各角色职责与禁止行为
-- 正文隔离协议（P0检测触发器）
-- editorial_team_manager.py 脚本用法
-- 人工介入条件与流程
+**Content Requirements:**
+- Editorial team structure (Chief Editor / Planning Editor / Writing Agent / Anti-AI Editor / Serial Verification Officer)
+- Responsibilities and prohibited actions for each role
+- Body text isolation protocol (P0 detection triggers)
+- editorial_team_manager.py script usage
+- Human intervention conditions and procedures
 
 ---
 
-## Task 3：SKILL.md 补充 Iron Law
+## Task 3: SKILL.md Iron Law Supplement
 
 **Files:**
 - Modify: `SKILL.md`
 
-**内容要求：**
-- 在文件顶部（frontmatter 之后，第1节之前）插入 Iron Law 段落
-- 使用 ⛔ 符号标记绝对禁止项
-- 内容覆盖：绕过门禁、跳过确认步骤、混淆正文与元信息等核心约束
+**Content Requirements:**
+- Insert an Iron Law paragraph near the top of the file (after the frontmatter, before Section 1)
+- Use the ⛔ symbol to mark absolute prohibitions
+- Content covers: bypassing the gate, skipping confirmation steps, confusing body text with metadata, and other core constraints
 
 ---
 
-## Task 4：SKILL.md 主流程 Checklist 提升
+## Task 4: SKILL.md Main Flow Checklist Enhancement
 
 **Files:**
 - Modify: `SKILL.md`
 
-**内容要求：**
-- 在第4节"强制章节闭环"中，将5个步骤改为可勾选 Checklist 格式（`- [ ]`）
-- 每步加上 ⚠️（警告）或 ⛔（禁止跳过）标记
-- 说明跳过任一步骤的后果
+**Content Requirements:**
+- In Section 4 "Mandatory Chapter Closure Loop", convert the 5 steps into a checkable Checklist format (`- [ ]`)
+- Add ⚠️ (warning) or ⛔ (do not skip) markers to each step
+- Explain the consequences of skipping any step
 
 ---
 
-## Task 5：更新 plans/task_plan.md
+## Task 5: Update plans/task_plan.md
 
 **Files:**
 - Modify: `plans/task_plan.md`
 
-**内容：** 标记所有任务完成，记录最终状态。
+**Content:** Mark All Tasks Complete, Record Final Status.

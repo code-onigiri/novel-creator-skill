@@ -1,19 +1,19 @@
-# 剧情种子（模糊输入转结构化）
+# Plot Seed (Convert Vague Input to Structured Format)
 
-## 一句话脑洞
+## One-Liner Concept
 
-## 题材与目标读者
+## Genre and Target Audience
 
-## 主角（起点状态）
+## Protagonist (Starting State)
 
-## 核心冲突（当前最模糊也要先写）
+## Core Conflict (Write even if currently vague)
 
-## 预期结局（可暂定）
+## Expected Ending (Can be provisional)
 
-## 禁区（不想写的内容）
+## Taboo Areas (Content not wanted to write)
 
 
-## 用户输入补充
-- 剧情种子：主角在旧港区发现失踪名单
-- 主角目标：明确主角核心目标
-- 核心冲突：主线冲突待细化
+## User Input Supplement
+- Plot Seed: Protagonist discovers a missing persons list in the old port district
+- Protagonist Goal: Clarify the protagonist's core objective
+- Core Conflict: Main plot conflict needs refinement

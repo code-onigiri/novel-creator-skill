@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""共享工具模块 - 消除代码重复
+"""Shared Utility Module - Eliminate Code Duplication
 
-该模块集中管理所有脚本共享的工具函数，避免在多个文件中重复定义。
-主要用于支持百万字级别长篇小说的创作流程。
+This module centrally manages all shared utility functions across scripts,
+avoiding duplicate definitions in multiple files. It mainly supports the
+creation workflow for million-character-level long novels.
 """
 
 import functools
@@ -13,7 +14,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 # =============================================================================
-# 预编译的正则表达式（性能优化）
+# Precompiled Regular Expressions (Performance Optimization)
 # =============================================================================
 
 _CHAPTER_RE = re.compile(r"^第\d+章.*\.md$")
@@ -23,60 +24,60 @@ _ENGLISH_RE = re.compile(r"[A-Za-z]{3,}")
 _CHAPTER_NO_RE = re.compile(r"第(\d+)章")
 
 # =============================================================================
-# 文件系统操作
+# File System Operations
 # =============================================================================
 
 
 def ensure_dir(path: Path) -> None:
-    """确保目录存在，不存在则递归创建。
-    
+    """Ensure directory exists, create recursively if not.
+
     Args:
-        path: 目录路径
+        path: Directory path
     """
     path.mkdir(parents=True, exist_ok=True)
 
 
 def read_text(path: Path, default: str = "") -> str:
-    """安全读取文本文件。
+    """Safely read a text file.
 
     Args:
-        path: 文件路径
-        default: 文件不存在时的默认值
+        path: File path
+        default: Default value if file does not exist
 
     Returns:
-        文件内容，或默认值
+        File content, or default value
     """
     try:
         return path.read_text(encoding="utf-8")
     except UnicodeDecodeError as e:
-        print(f"[WARN] 文件编码问题 {path}: {e}")
+        print(f"[WARN] File encoding issue {path}: {e}")
         return path.read_text(encoding="utf-8", errors="replace")
     except (FileNotFoundError, PermissionError):
         return default
 
 
 def write_text(path: Path, content: str) -> bool:
-    """安全写入文本文件。
-    
+    """Safely write a text file.
+
     Args:
-        path: 文件路径
-        content: 写入内容
-        
+        path: File path
+        content: Content to write
+
     Returns:
-        是否写入成功
+        Whether the write succeeded
     """
     try:
         ensure_dir(path.parent)
         path.write_text(content.rstrip() + "\n", encoding="utf-8")
         return True
     except (IOError, PermissionError) as e:
-        # 使用 print 而非 logging，保持与现有代码一致
-        print(f"[ERROR] 写入失败 {path}: {e}")
+        # Use print instead of logging to be consistent with existing code
+        print(f"[ERROR] Failed to write {path}: {e}")
         return False
 
 
 # =============================================================================
-# JSON 操作
+# JSON Operations
 # =============================================================================
 
 
@@ -85,15 +86,15 @@ def load_json(
     default: Optional[Dict[str, Any]] = None,
     required_keys: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
-    """安全加载 JSON 文件，支持默认值和键校验。
-    
+    """Safely load a JSON file, with support for defaults and key validation.
+
     Args:
-        path: JSON 文件路径
-        default: 加载失败时的默认值
-        required_keys: 必须存在的键列表
-        
+        path: JSON file path
+        default: Default value on load failure
+        required_keys: List of required keys
+
     Returns:
-        解析后的字典，或默认值
+        Parsed dictionary, or default value
     """
     if default is None:
         default = {}
@@ -108,7 +109,7 @@ def load_json(
         if not isinstance(obj, dict):
             return default.copy()
 
-        # 校验必需字段
+        # Validate required fields
         if required_keys:
             missing = [k for k in required_keys if k not in obj]
             if missing:
@@ -123,15 +124,15 @@ def load_json(
 def save_json(
     path: Path, payload: Dict[str, Any], indent: int = 2
 ) -> bool:
-    """安全保存 JSON 文件。
-    
+    """Safely save a JSON file.
+
     Args:
-        path: 文件路径
-        payload: 要保存的字典
-        indent: 缩进空格数
-        
+        path: File path
+        payload: Dictionary to save
+        indent: Number of indent spaces
+
     Returns:
-        是否保存成功
+        Whether the save succeeded
     """
     try:
         ensure_dir(path.parent)
@@ -139,78 +140,78 @@ def save_json(
             json.dump(payload, f, ensure_ascii=False, indent=indent)
         return True
     except (IOError, TypeError) as e:
-        print(f"[ERROR] 保存 JSON 失败 {path}: {e}")
+        print(f"[ERROR] Failed to save JSON {path}: {e}")
         return False
 
 
 # =============================================================================
-# 文本处理
+# Text Processing
 # =============================================================================
 
 
 def slugify(text: str) -> str:
-    """将文本转换为 URL/文件名友好的 slug。
-    
-    保留中文字符、字母、数字、下划线和连字符。
-    
+    """Convert text to a URL/filename-friendly slug.
+
+    Preserves Chinese characters, letters, digits, underscores, and hyphens.
+
     Args:
-        text: 原始文本
-        
+        text: Raw text
+
     Returns:
-        转换后的 slug
+        Converted slug
     """
     s = _SLUGIFY_RE.sub("-", text).strip("-")
     return s or "chapter"
 
 
 def normalize_text(text: str) -> str:
-    """将连续空白替换为单个空格。"""
+    """Replace consecutive whitespace with a single space."""
     return re.sub(r"\s+", " ", text).strip()
 
 
 def count_chars(text: str, include_spaces: bool = False) -> int:
-    """统计文本字符数（统一方法）。
+    """Count text characters (unified method).
 
-    对于中文小说，通常统计中文字符数更准确。
-    此方法同时支持：
-    - 纯中文字符统计（默认）
-    - 包含所有非空白字符统计
+    For Chinese novels, counting Chinese characters is usually more accurate.
+    This method supports both:
+    - Pure Chinese character count (default)
+    - Count all non-whitespace characters
 
     Args:
-        text: 输入文本
-        include_spaces: 是否包含空格和标点
+        text: Input text
+        include_spaces: Whether to include spaces and punctuation
 
     Returns:
-        字符数
+        Character count
     """
     if include_spaces:
-        # 统计所有非空白字符
+        # Count all non-whitespace characters
         return len(re.sub(r"\s+", "", text))
     else:
-        # 仅统计中文字符（更适合中文小说）
+        # Count only Chinese characters (more accurate for Chinese novels)
         return len(re.findall(r'[\u4e00-\u9fff]', text))
 
 
 def sha1_text(text: str) -> str:
-    """计算文本的 SHA1 哈希值。
-    
+    """Compute the SHA1 hash of text.
+
     Args:
-        text: 输入文本
-        
+        text: Input text
+
     Returns:
-        SHA1 哈希字符串
+        SHA1 hash string
     """
     return hashlib.sha1(text.encode("utf-8")).hexdigest()
 
 
 def file_sha1(path: Path) -> str:
-    """计算文件的 SHA1 哈希值。
-    
+    """Compute the SHA1 hash of a file.
+
     Args:
-        path: 文件路径
-        
+        path: File path
+
     Returns:
-        文件内容的 SHA1 哈希，文件不存在返回空字符串
+        SHA1 hash of file content, empty string if file not found
     """
     if not path.exists():
         return ""
@@ -218,32 +219,32 @@ def file_sha1(path: Path) -> str:
 
 
 # =============================================================================
-# 章节相关工具
+# Chapter Utilities
 # =============================================================================
 
 
 def is_chapter_file(filename: str) -> bool:
-    """判断文件名是否为章节文件。
-    
-    章节文件名格式：第XX章[标题].md
-    
+    """Determine whether a filename is a chapter file.
+
+    Chapter filename format: ChapterXX[Title].md
+
     Args:
-        filename: 文件名
-        
+        filename: Filename
+
     Returns:
-        是否为章节文件
+        Whether it is a chapter file
     """
     return bool(_CHAPTER_RE.match(filename))
 
 
 def chapter_no_from_name(filename: str) -> int:
-    """从章节文件名提取章节序号。
-    
+    """Extract chapter number from chapter filename.
+
     Args:
-        filename: 章节文件名，如 "第15章 突破.md"
-        
+        filename: Chapter filename, e.g. Chapter15 Breakthrough.md
+
     Returns:
-        章节序号，提取失败返回0
+        Chapter number, 0 on failure
     """
     match = _CHAPTER_NO_RE.search(filename)
     if match:
@@ -252,62 +253,61 @@ def chapter_no_from_name(filename: str) -> int:
 
 
 def normalize_chapter_filename(chapter_no: int, title: str = "") -> str:
-    """生成标准化的章节文件名。
-    
+    """Generate a normalized chapter filename.
+
     Args:
-        chapter_no: 章节序号
-        title: 章节标题（可选）
-        
+        chapter_no: Chapter number
+        title: Chapter title (optional)
+
     Returns:
-        标准化文件名，如 "第15章 突破.md"
+        Standardized filename, e.g. Chapter15 Breakthrough.md
     """
     if title:
-        # 清理标题中的非法字符
         clean_title = re.sub(r'[<>:"/\\|?*]', '', title).strip()
-        return f"第{chapter_no}章 {clean_title}.md"
-    return f"第{chapter_no}章.md"
+        return f"Chapter{chapter_no} {clean_title}.md"
+    return f"Chapter{chapter_no}.md"
 
 
 # =============================================================================
-# 缓存相关工具
+# Caching Utilities
 # =============================================================================
 
 
 def generate_cache_key(*components: str) -> str:
-    """生成缓存键。
-    
+    """Generate a cache key.
+
     Args:
-        *components: 缓存键组成部分
-        
+        *components: Cache key components
+
     Returns:
-        哈希后的缓存键
+        Hashed cache key
     """
     combined = "|".join(components)
     return hashlib.sha256(combined.encode()).hexdigest()[:16]
 
 
 # =============================================================================
-# 版本信息
+# Version Information
 # =============================================================================
 
 __version__ = "1.0.0"
 __all__ = [
-    # 文件系统
+    # File system
     "ensure_dir",
     "read_text",
     "write_text",
     # JSON
     "load_json",
     "save_json",
-    # 文本处理
+    # Text processing
     "slugify",
     "normalize_text",
     "sha1_text",
     "file_sha1",
-    # 章节相关
+    # Chapter related
     "is_chapter_file",
     "chapter_no_from_name",
     "normalize_chapter_filename",
-    # 缓存
+    # Caching
     "generate_cache_key",
 ]

@@ -1,38 +1,38 @@
-# 长篇一致性 RAG 方案评估与设计
+# Long-Form Consistency RAG Plan Evaluation and Design
 
-## 可行性结论
-结论：可行，且对“长期写作不跑偏”有显著帮助，但不能替代门禁校稿。
+## Feasibility Conclusion
+Conclusion: Feasible, and significantly helpful for "staying on track during long-term writing", but cannot replace gate proofreading.
 
-为什么可行：
-1. 章节内容、人物关系、剧情线都已落在本地文件（可索引）。
-2. 写作前能自动回读相关章节，减少遗忘导致的设定冲突。
-3. 与现有门禁（更新记忆/一致性/风格/校稿）结合，可形成“检索前置 + 质量后置”的双保险。
+Why Feasible:
+1. Chapter content, character relationships, and plot lines all reside in local files (indexable).
+2. Can automatically re-read relevant chapters before writing, reducing setting conflicts caused by forgetting.
+3. Combined with existing gate checks (update memory / consistency / style / copyedit), forms a dual insurance of "retrieval upfront + quality backend".
 
-边界：
-- RAG 只能降低“漏读”风险，不能保证 100% 逻辑正确。
-- 检索结果质量依赖索引质量与元数据质量。
-- 仍需 `/检查一致性` 与 `/校稿` 做最终裁决。
+Boundary:
+- RAG can only reduce "missed reading" risk, cannot guarantee 100% logical correctness.
+- Retrieval result quality depends on index quality and metadata quality.
+- Still need /check-consistency and /copyedit for final adjudication.
 
-## 方案原则（参考检索最佳实践）
-1. 元数据过滤：按角色命中、章节号、关键词重叠做筛选。
-1.1 两级检索：先粗筛候选池（低成本），再精排 Top-K（高精度）。
-2. 小检索集：默认 Top-K=4，避免上下文过载。
-3. 索引增量更新：每章后更新一次索引。
-4. 条件触发：轻场景自动跳过检索，复杂剧情再检索。
-5. 片段优先：默认返回关键片段，不回读整章。
-6. 结果可解释：返回命中原因（角色重叠、关键词重叠、章节新近度）。
-7. 读取顺序明确：固定先读 `novel_plan.md` + `novel_state.md`，再读检索命中片段。
-8. 查询缓存：同查询+同索引签名优先复用结果，减少重复开销。
+## Plan Principles (Referencing Retrieval Best Practices)
+1. Metadata filtering: filter by character match, chapter number, keyword overlap.
+1.1 Two-stage retrieval: coarse-tune candidate pool (low cost) first, then fine-tune Top-K (high precision).
+2. Small retrieval set: default Top-K=4, avoid context overload.
+3. Incremental index update: update index once after each chapter.
+4. Conditional trigger: skip retrieval automatically for light scenarios, retrieve for complex plots.
+5. Fragment priority: return key fragments by default, do not re-read entire chapters.
+6. Results are explainable: return hit reasons (character overlap, keyword overlap, chapter recency).
+7. Reading order is clear: always read `novel_plan.md` + `novel_state.md` first, then read retrieval hit fragments.
+8. Query cache: for the same query + same index signature, prioritize reusing results to reduce redundant overhead.
 
-## 实现落点
-- 索引脚本：`scripts/plot_rag_retriever.py`
-- 索引文件：`00_memory/retrieval/story_index.json`
-- 实体映射：`00_memory/retrieval/entity_chapter_map.json`
-- 章节元数据侧车：`00_memory/retrieval/chapter_meta/*.meta.json`
-- 写作前上下文建议：`00_memory/retrieval/next_plot_context.md`
+## Implementation Targets
+- Index script: `scripts/plot_rag_retriever.py`
+- Index file: `00_memory/retrieval/story_index.json`
+- Entity mapping: `00_memory/retrieval/entity_chapter_map.json`
+- Chapter metadata sidecar: `00_memory/retrieval/chapter_meta/*.meta.json`
+- Pre-writing context suggestion: `00_memory/retrieval/next_plot_context.md`
 
-## 推荐使用方式
-1. 每章写后执行：`/更新剧情索引`
-2. 新剧情写前执行：`/剧情检索`
-3. 再进入：`/写作`
-4. 写后继续门禁链路：`/更新记忆 -> /检查一致性 -> /风格校准 -> /校稿 -> /门禁检查`
+## Recommended Usage
+1. Execute /update-plot-index after each chapter is written
+2. Execute /plot-retrieval before writing new plot
+3. Then enter /writing
+4. After writing, continue the gate check chain: /update-memory -> /check-consistency -> /style-calibration -> /copyedit -> /gate-check

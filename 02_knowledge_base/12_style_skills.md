@@ -1,3 +1,3 @@
-# 风格技能库
+# Style Skills Library
 
-- 初始化：待补充项目风格技能。
+- Initialization: Project style skills to be added.

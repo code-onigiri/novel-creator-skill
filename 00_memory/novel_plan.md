@@ -1,34 +1,34 @@
-# 小说主线计划
+# Novel Main Plot Plan
 
-> 本文件是长期记忆的核心，防止剧情偏离主线。每次写作前必读。
-> 修改规则：仅在用户明确同意后修改。
+> This file is the core of long-term memory, preventing the plot from deviating from the main line. Must read before every writing session.
+> Modification rule: Only modify with explicit user consent.
 
-## 核心设定（不可偏离）
-- 书名：雾港回声
-- 类型：悬疑
-- 核心卖点（一句话）：高概念卖点待补充
-- 预计总字数：3000000
-- 终极结局：开放式结局（可后续修改）
+## Core Settings (Must Not Deviate)
+- Book Title: Echoes of the Fog Harbor
+- Genre: Mystery/Suspense
+- Core Selling Point (One Sentence): High-concept selling point to be added
+- Estimated Total Word Count: 3000000
+- Final Ending: Open ending (can be modified later)
 
-## 主线大纲
-- [ ] 第一卷：起势卷 - 主线冲突待细化 (第1-120章)
-  - [ ] 第一幕：建立主角目标与初始矛盾
-  - [ ] 第二幕：冲突升级并引入多线压力
-  - [ ] 第三幕：卷末反转并埋下跨卷悬念
-- [ ] 第二卷：扩张卷 - 主线升级 (第121-240章)
+## Main Plot Outline
+- [ ] Volume 1: Rising Action - Main conflict to be refined (Chapters 1-120)
+  - [ ] Act 1: Establish protagonist's goal and initial conflict
+  - [ ] Act 2: Conflict escalates and introduces multi-thread pressure
+  - [ ] Act 3: Volume-end twist and plant cross-volume suspense
+- [ ] Volume 2: Expansion Volume - Main plot upgrade (Chapters 121-240)
   - [ ] ...
-<!-- 根据实际大纲继续添加 -->
+<!-- Continue adding based on actual outline -->
 
-## 核心人物弧线
-- 主角(主角)：普通起点 → 价值观重塑 → 完成角色弧线
-- 核心配角：初始立场 → 立场变化 → 关系定型
-<!-- 根据实际角色继续添加 -->
+## Core Character Arcs
+- Protagonist: Ordinary starting point → Values reshaping → Complete character arc
+- Core Supporting Characters: Initial stance → Stance change → Relationship solidified
+<!-- Continue adding based on actual characters -->
 
-## 力量体系阶梯
-初阶 → 中阶 → 高阶 → ... → 终阶
+## Power System Ladder
+Beginner → Intermediate → Advanced → ... → Ultimate
 
-## 绝对规则（红线）
-1. 角色行为必须符合已建立动机
-2. 时间线不得自相矛盾
-3. 力量体系不得跳级失控
-<!-- 不可违反的设定，写作中如有新增请补充 -->
+## Absolute Rules (Red Lines)
+1. Character actions must conform to established motivations
+2. Timeline must not contradict itself
+3. Power system must not spiral out of control with skipped levels
+<!-- Unbreakable settings, add new ones during writing if needed -->

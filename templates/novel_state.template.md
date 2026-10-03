@@ -1,29 +1,29 @@
-# 当前写作状态
+# Current Writing State
 
-> 本文件提供即时上下文。每章写完后必须更新。
+> This file provides immediate context. Must be updated after every chapter is written.
 
-## 进度
-- 当前章节：第0章（尚未开始）
-- 当前卷：第一卷
-- 总字数：0
-- 最后更新：{DATE}
+## Progress
+- Current Chapter: Chapter 0 (Not yet started)
+- Current Volume: Volume 1
+- Total Word Count: 0
+- Last Updated: {DATE}
 
-## 当前活跃剧情线
-1. [主线] {MAIN_PLOT}（进展：0%）
+## Currently Active Plotlines
+1. [Main Plot] {MAIN_PLOT} (Progress: 0%)
 
-## 当前活跃人物
-| 人物 | 当前状态 | 所在位置 | 当前目标 |
+## Currently Active Characters
+| Character | Current Status | Location | Current Goal |
 |------|---------|---------|---------|
-| {PROTAGONIST} | 初始状态 | {START_LOCATION} | {START_GOAL} |
+| {PROTAGONIST} | Initial State | {START_LOCATION} | {START_GOAL} |
 
-## 待回收伏笔（紧急度排序）
-（暂无）
+## Pending Foreshadowing (Sorted by Urgency)
+(None yet)
 
-## 最近5章摘要
-（尚未开始写作）
+## Recent 5 Chapters Summary
+(No writing has started yet)
 
-## 下一章预告
-- 章节号：第1章
-- 计划内容：{CHAPTER1_PLAN}
-- 涉及人物：{CHAPTER1_CHARACTERS}
-- 需要回收的伏笔：无
+## Next Chapter Preview
+- Chapter Number: Chapter 1
+- Planned Content: {CHAPTER1_PLAN}
+- Characters Involved: {CHAPTER1_CHARACTERS}
+- Foreshadowing to Resolve: None

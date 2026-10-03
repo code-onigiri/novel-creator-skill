@@ -1,148 +1,148 @@
-# 去AI味润色指南（中文小说版）
+# AI-Texture Removal Polish Guide (Chinese Novel Edition)
 
-> 基于 [humanizer skill](https://github.com/blader/humanizer) v2.2.0 的方法论，
-> 针对中文网络小说创作场景定制。
-> 核心检测逻辑见 `scripts/text_humanizer.py`。
+> Based on the [humanizer skill](https://github.com/blader/humanizer) v2.2.0 methodology,
+> customized for the Chinese web novel creation scenario.
+> Core detection logic see `scripts/text_humanizer.py`.
 
-## 核心原则
+## Core Principles
 
-AI 文本之所以"有 AI 味"，是因为大语言模型的统计算法倾向于选择"在最多情况下都说得过去"的表达——这导致文字安全、中性、可预测，缺乏人类写作的具体性和个人性。
+AI text has "AI texture" because large language models' statistical algorithms tend to choose expressions that "work in most cases" — this makes the text safe, neutral, and predictable, lacking the specificity and individuality of human writing.
 
-去 AI 味不是删词，而是**用具体细节替代抽象套话，用行动替代状态描述**。
-
----
-
-## 两遍式润色流程
-
-执行 `/校稿` 时，必须完成两遍：
-
-### 第一遍：清除 AI 模式
-
-逐段扫描，针对以下 7 类模式逐一处理。
-
-### 第二遍：AI 自审
-
-完成第一遍后，对自己的修改稿提问：
-> "这段文字哪些地方还是明显 AI 生成的感觉？"
-
-列出 3-5 条具体问题，然后针对这些问题再次修改后输出最终版。
+Removing AI texture is not about deleting words, but replacing abstract stock phrases with specific details, and replacing state descriptions with actions.
 
 ---
 
-## 7 大 AI 写作模式（中文小说版）
+## Two-Pass Polish Flow
 
-### 1. AI 高频词汇（直接替换）
+When executing `/copyedit`, both passes must be completed:
 
-这些词在 AI 生成的中文小说中出现频率远高于人类写作。
+### Pass 1: Clear AI Patterns
 
-| 词/短语 | 问题 | 改法 |
-|---------|------|------|
-| 不禁 | 剥夺角色主动性 | 直接写角色的行动 |
-| 仿佛/宛如/宛若 | 过度比喻，每段一次即过多 | 用具体感知描写替代 |
-| 映入眼帘 | 陈词滥调的视觉过渡 | 直接写看到了什么 |
-| 心中暗道/暗自思忖 | 内心独白套话 | 删除或改为行动 |
-| 沉声道/淡淡地说/缓缓说道 | 对话标签膨胀 | 统一用"说"或直接删标签 |
-| 脸色一变/身形一顿 | 反应套话 | 写具体的生理反应 |
-| 嘴角微扬/勾起一抹弧度 | 微笑套话（AI特征极强） | "他笑了"或删掉 |
-| 不由自主/情不自禁 | 主体性剥夺 | 改为角色主动发出行动 |
-| 只见/此时此刻 | 场景过渡套话 | 直接切换场景 |
-| 目光如炬/目光深邃 | 眼睛描写套话 | 写眼睛看向哪里、做了什么 |
+Scan segment by segment, handling each of the 7 pattern categories one by one.
 
-**示例：**
-- ~~他不禁感到一阵心悸~~  →  他的手抖了一下
-- ~~只见她嘴角微扬，勾起一抹弧度~~  →  她笑了
-- ~~此时此刻，他心中暗道~~  →  删除，直接写下一个行动
+### Pass 2: AI Self-Review
+
+After Pass 1, ask yourself about your revised draft:
+> "Which parts of this text still feel obviously AI-generated?"
+
+List 3-5 specific issues, then modify again targeting these issues and output the final version.
 
 ---
 
-### 2. 弱化副词泛滥
+## 7 Major AI Writing Patterns (Chinese Novel Edition)
 
-"微微"、"淡淡"、"缓缓"、"轻轻"、"悄然"、"默默"、"隐隐"……
+### 1. AI High-Frequency Words (Direct Replacement)
 
-单个使用无害，但每千字超过 3 个即是 AI 特征。
+These words appear far more frequently in AI-generated Chinese novels than in human writing.
 
-**处理原则**：删除大部分。剩下的应是真正需要强调"微弱程度"的地方。
+| Word/Phrase | Issue | Fix |
+|-------------|-------|-----|
+| Cannot help but | Robs the character of agency | Write the character's action directly |
+| As if / As though / Resembling | Overly metaphorical, once per paragraph is too much | Replace with specific sensory descriptions |
+| Catches the eye | Clichéd visual transition | Write what was seen directly |
+| Silently think to oneself / Mutter inwardly | Inner monologue stock phrase | Delete or change to action |
+| Speak in a low voice / Speak faintly / Speak slowly with emotion | Dialogue tag inflation | Use "said" uniformly or delete the tag |
+| Expression changes / Body stiffens | Reaction stock phrase | Write a specific physical reaction |
+| Corners of the mouth slightly rise / Pull up a smile | Smile stock phrase (very strong AI characteristic) | He smiled or delete it |
+| Involuntarily / Can't help oneself | Agency deprivation | Change to the character actively taking action |
+| Only see / At this moment | Scene transition stock phrase | Switch scenes directly |
+| Eyes like burning torces / Deep eyes | Eyes description stock phrase | Write where the eyes look and what they do |
 
-- ~~他微微点了点头~~ → 他点了点头
-- ~~她轻轻叹了口气~~ → 她叹气
-
----
-
-### 3. 意义膨胀
-
-AI 喜欢给普通事件加上"意义深远"、"前所未有"、"可谓"等宏大标签。
-
-**处理原则**：删除标签，用具体的后续影响替代。
-
-- ~~这次会面意义深远~~ → 从那以后，他改变了用兵的方式
-- ~~可谓是天下第一~~ → 删掉"可谓"，直接陈述
-- ~~此举前所未有~~ → 删掉，写具体发生了什么
-
----
-
-### 4. 通用结论套话
-
-小说结尾不用"未来可期"、"前途无量"、"充满希望"等空洞结语。
-
-**处理原则**：用具体的悬念、未解决的冲突、角色的下一步行动结尾。
-
-- ~~展望未来，他充满希望~~ → 他把那封信折好，放进了锁匣。还有一件事没做完。
+**Examples:**
+- ~~His heart couldn't help but race~~ → His hand trembled
+- ~~Only the corners of her mouth rose, pulling up a smile~~ → She smiled
+- ~~At this moment, he silently thought~~ → Delete, write the next action directly
 
 ---
 
-### 5. 论文式段落结构
+### 2. Weakening Adverb Overuse
 
-AI 在每段开头写"总结句"（来自论文写作习惯）。小说里每段应该以行动、感知或对话开头，不是以评论开头。
+"Slightly", "faintly", "slowly", "gently", "quietly", "silently", "dimly"...
 
-**检测标志**：段落以"不难看出"、"由此可见"、"事实上"、"值得注意的是"等开头。
+Single use is harmless, but more than 3 per thousand characters is an AI characteristic.
 
-- ~~不难看出，他已下定决心。接下来，他走向了马厩……~~ → 他走向了马厩，没有回头。
+**Handling Principle**: Delete most of them. The remaining should be places that truly need to emphasize "faint degree."
 
----
-
-### 6. 正式语体入侵小说正文
-
-小说正文中出现论文/新闻语体，读起来像评论而非叙事。
-
-常见词：于是乎、与此同时、从而、因而、诚然、一方面……另一方面……
-
-**处理原则**：全部删除或改为口语化/行动化表达。
+- ~~Slightly nodded~~ → He nodded
+- ~~Lightly sighed~~ → She sighed
 
 ---
 
-### 7. 排比三连过多
+### 3. Meaning Inflation
 
-AI 非常喜欢把事物凑成三个一组（"A、B 和 C"）来制造"全面感"。
+AI likes adding grand labels like "profoundly meaningful", "unprecedented", "it could be said that" to ordinary events.
 
-**处理原则**：检查每个三元组，如果其中某项可以删除而不损失意义，就删。
+**Handling Principle**: Delete labels, replace with specific subsequent consequences.
 
-- ~~他展现出了勇气、智慧和决断力~~ → 他很果断
-- ~~这场战斗充满了激烈、残酷和牺牲~~ → 这场战斗死了很多人
-
----
-
-## 有灵魂的写作 vs 干净但无灵魂
-
-避免了 AI 模式但仍然无聊，同样是写作失败。好的写作有以下特征：
-
-- **有观点**：叙述者对事件有态度，不只是中性记录
-- **节奏变化**：短句。然后是长一些的句子，它们用更多的文字把意思交代清楚。两者交替使用。
-- **具体感受**：不是"他感到担忧"，而是"他的后背出了一层冷汗"
-- **细节代替判断**：不是"她很聪明"，而是写她做了什么具体的聪明事
+- ~~This meeting was profoundly meaningful~~ → From then on, he changed his approach to warfare
+- ~~It could be said to be the best in the world~~ → Delete "it could be said that", state directly
+- ~~This action was unprecedented~~ → Delete, write what specifically happened
 
 ---
 
-## 脚本用法
+### 4. Generic Conclusion Stock Phrases
+
+Novel endings should not use hollow conclude phrases like "the future is promising", "limitless prospects", "full of hope."
+
+**Handling Principle**: End with specific suspense, unresolved conflict, or the character's next action.
+
+- ~~Looking to the future, he is full of hope~~ → He folded the letter and put it in the locked box. There was still one thing left undone.
+
+---
+
+### 5. Thesis-Style Paragraph Structure
+
+AI writes a "summary sentence" at the beginning of each paragraph (from thesis-writing habits). Each paragraph in a novel should start with action, perception, or dialogue, not with a comment.
+
+**Detection Markers**: Paragraphs starting with "it is not hard to see", "as can be seen", "in fact", "it is worth noting" etc.
+
+- ~~It is not hard to see, he has made up his mind. Next, he walked to the stable...~~ → He walked to the stable without looking back.
+
+---
+
+### 6. Formal Register Invading Novel Text
+
+Academic/news register appearing in novel text, reading like commentary rather than narration.
+
+Common words: therefore, at the same time, thereby, thus, indeed, on one hand... on the other hand...
+
+**Handling Principle**: Delete all or change to colloquial/action-oriented expression.
+
+---
+
+### 7. Excessive Trilateral Parallelism
+
+AI very much likes grouping things into threes ("A, B, and C") to create a sense of "comprehensiveness."
+
+**Handling Principle**: Check each trilateral group; if one item can be deleted without losing meaning, delete it.
+
+- ~~He demonstrated courage, intelligence, and decisiveness~~ → He was decisive
+- ~~This battle was filled with intensity, cruelty, and sacrifice~~ → Many people died in that battle
+
+---
+
+## Writing with Soul vs. Clean but Soulless
+
+Avoiding AI patterns but still being boring is equally a writing failure. Good writing has the following characteristics:
+
+- **Has opinions**: The narrator has an attitude toward events, not just neutral recording
+- **Rhythm variation**: Short sentences. Then longer sentences that elaborate meaning with more words. Alternating between the two.
+- **Specific feeling**: Not "he felt worried" but "a layer of cold sweat broke out on his back"
+- **Details replace judgment**: Not "she was smart" but write what specific smart things she did
+
+---
+
+## Script Usage
 
 ```bash
-# 检测章节的 AI 痕迹（JSON 输出）
-python3 scripts/text_humanizer.py detect --chapter-file 03_manuscript/第15章.md
+# Detect AI traces in a chapter (JSON output)
+python3 scripts/text_humanizer.py detect --chapter-file 03_manuscript/Chapter15.md
 
-# 获取可读报告
-python3 scripts/text_humanizer.py report --chapter-file 03_manuscript/第15章.md
+# Get a readable report
+python3 scripts/text_humanizer.py report --chapter-file 03_manuscript/Chapter15.md
 
-# 生成两遍式润色 prompt（供复制给 Claude 执行）
-python3 scripts/text_humanizer.py prompt --chapter-file 03_manuscript/第15章.md
+# Generate a two-pass polish prompt (for copying and executing in Claude)
+python3 scripts/text_humanizer.py prompt --chapter-file 03_manuscript/Chapter15.md
 ```
 
-`continue-write` 会自动在生成门禁产物时调用 `detect`，结果写入 `copyedit_report.md`，供 `/校稿` 步骤参考。
+`/continue-write` will automatically call `detect` when generating gate artifacts, the result is written to `copyedit_report.md` for reference by the `/copyedit` step.

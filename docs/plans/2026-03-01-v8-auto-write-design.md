@@ -1,40 +1,40 @@
-# Novel Creator Skill v8.0 实施计划
+# Novel Creator Skill v8.0 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 升级小说创作技能至 v8.0，新增通用联网调研能力、多LLM支持、一键写书功能，同时消除代码重复和优化架构。
+**Goal:** Upgrade the novel creation skill to v8.0, adding universal online research capability, multi-LLM support, one-click book writing, while eliminating code duplication and optimizing architecture.
 
-**Architecture:** 联网调研作为独立通用模块（research_agent.py），可被任何写作流程调用。多LLM引擎整合 novel_chapter_writer.py 为统一 AI Provider 层，支持 OpenAI/Claude/Kimi/GLM/MiniMax 等。一键写书（auto_novel_writer.py）作为顶层调度器，串联调研→开书→循环写作→完成报告，支持断点续写。
+**Architecture:** Online research as an independent universal module (research_agent.py), callable by any writing flow. Multi-LLM engine integrates novel_chapter_writer.py into a unified AI Provider layer, supporting OpenAI/Claude/Kimi/GLM/MiniMax/etc. One-click book writing (auto_novel_writer.py) as a top-level orchestrator, chaining research → create book → loop writing → Completion Report, supports resumption from breakpoint.
 
-**Tech Stack:** Python 3.9+, 零外部依赖（requests/openai/anthropic 为可选），JSON 状态文件，SKILL.md 指令层
+**Tech Stack:** Python 3.9+, zero external dependencies (requests/openai/anthropic are optional), JSON state files, SKILL.md instruction layer
 
 ---
 
-## Task 1: 整合 common.py 到所有脚本 - 消除重复函数
+## Task 1: Integrate common.py into All Scripts - Eliminate Duplicate Functions
 
 **Files:**
-- Modify: `scripts/novel_flow_executor.py:45-98` (删除重复的 ensure_dir, read_text, write_text, sha1_text, file_sha1, load_json, slugify)
-- Modify: `scripts/plot_rag_retriever.py:33-69` (删除重复的 slugify, ensure_dir, read_text, tokenize, parse_chapter_no)
-- Modify: `scripts/chapter_gate_check.py:15-17` (删除重复的 slugify)
-- Modify: `scripts/gate_repair_plan.py:15-17` (删除重复的 slugify)
-- Modify: `scripts/style_fingerprint.py:37-41` (删除重复的 slugify)
-- Modify: `scripts/common.py` (确保所有需要的函数都已导出)
+- Modify: `scripts/novel_flow_executor.py:45-98` (delete duplicate ensure_dir, read_text, write_text, sha1_text, file_sha1, load_json, slugify)
+- Modify: `scripts/plot_rag_retriever.py:33-69` (delete duplicate slugify, ensure_dir, read_text, tokenize, parse_chapter_no)
+- Modify: `scripts/chapter_gate_check.py:15-17` (delete duplicate slugify)
+- Modify: `scripts/gate_repair_plan.py:15-17` (delete duplicate slugify)
+- Modify: `scripts/style_fingerprint.py:37-41` (delete duplicate slugify)
+- Modify: `scripts/common.py` (ensure all needed functions are exported)
 - Test: `scripts/test_novel_flow_executor.py`
 
-**Step 1: 更新 common.py 补充缺失的函数**
+**Step 1: Update common.py to Supplement Missing Functions**
 
-在 common.py 中确认已有：ensure_dir, read_text, write_text, load_json, save_json, slugify, sha1_text, file_sha1, is_chapter_file, chapter_no_from_name。需要新增 normalize_text（来自 plot_rag_retriever.py:46）。
+Confirm in common.py that the following exist: ensure_dir, read_text, write_text, load_json, save_json, slugify, sha1_text, file_sha1, is_chapter_file, chapter_no_from_name. Need to add normalize_text (from plot_rag_retriever.py:46).
 
 ```python
-# 在 common.py 的文本处理区域追加
+# Add to the text processing section of common.py
 def normalize_text(text: str) -> str:
-    """将连续空白替换为单个空格。"""
+    """Replace consecutive whitespace with a single space."""
     return re.sub(r"\s+", " ", text).strip()
 ```
 
-**Step 2: 修改 novel_flow_executor.py - 用 import 替换重复函数**
+**Step 2: Modify novel_flow_executor.py - Replace Duplicate Functions with Import**
 
-在文件头部添加导入：
+Add import at the top of the file:
 ```python
 from common import (
     ensure_dir, read_text, write_text, slugify,
@@ -42,110 +42,110 @@ from common import (
     chapter_no_from_name, is_chapter_file,
 )
 ```
-删除第 45-98 行和第 241-243 行的重复定义（ensure_dir, read_text, write_text, sha1_text, file_sha1, load_json, slugify）。保留 run_python 函数（common.py 中没有）。
+Delete duplicate definitions at lines 45-98 and 241-243 (ensure_dir, read_text, write_text, sha1_text, file_sha1, load_json, slugify). Keep the run_python function (not in common.py).
 
-注意：novel_flow_executor.py 的 load_json 签名是 `load_json(path, default)` 但 common.py 的是 `load_json(path, default=None, required_keys=None)`，兼容。
+Note: novel_flow_executor.py's load_json signature is `load_json(path, default)` but common.py's is `load_json(path, default=None, required_keys=None)`, compatible.
 
-**Step 3: 修改 plot_rag_retriever.py - 用 import 替换重复函数**
+**Step 3: Modify plot_rag_retriever.py - Replace Duplicate Functions with Import**
 
-在文件头部添加导入：
+Add import at the top of the file:
 ```python
 from common import ensure_dir, read_text, slugify, chapter_no_from_name, normalize_text
 ```
-删除第 33-48 行和第 67-69 行的重复定义。保留 tokenize（待 Task 2 整合 performance.py 时处理）。
+Delete duplicate definitions at lines 33-48 and 67-69. Keep tokenize (to be handled when Task 2 integrates performance.py).
 
-**Step 4: 修改 chapter_gate_check.py - 用 import 替换**
-
-```python
-from common import slugify
-```
-删除第 15-17 行。
-
-**Step 5: 修改 gate_repair_plan.py - 用 import 替换**
+**Step 4: Modify chapter_gate_check.py - Replace with Import**
 
 ```python
 from common import slugify
 ```
-删除第 15-17 行。
+Delete lines 15-17.
 
-**Step 6: 修改 style_fingerprint.py - 用 import 替换**
+**Step 5: Modify gate_repair_plan.py - Replace with Import**
 
-注意：style_fingerprint.py 的 slugify 实现略有不同（用 .lower() 和 md5 fallback）。需要保留其特殊版本或在 common.py 中增加参数。
+```python
+from common import slugify
+```
+Delete lines 15-17.
 
-保留 style_fingerprint.py 的自定义版本（重命名为 `_slugify_style`），其他通用 slugify 场景用 common.py 的。
+**Step 6: Modify style_fingerprint.py - Replace with Import**
 
-**Step 7: 运行回归测试**
+Note: style_fingerprint.py's slugify implementation differs slightly (uses .lower() and md5 fallback). Need to keep its special version or add a parameter in common.py.
+
+Keep the custom version in style_fingerprint.py (renamed to `_slugify_style`), use common.py's version for other general slugify scenarios.
+
+**Step 7: Run Regression Tests**
 
 Run: `cd /Users/wangbo/Desktop/novel-creator-skill && PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_novel_flow_executor.py`
-Expected: 所有测试通过
+Expected: All tests pass
 
 **Step 8: Commit**
 
 ```bash
 git add scripts/common.py scripts/novel_flow_executor.py scripts/plot_rag_retriever.py scripts/chapter_gate_check.py scripts/gate_repair_plan.py scripts/style_fingerprint.py
-git commit -m "refactor: 整合 common.py 消除 6 个脚本中的重复函数定义"
+git commit -m "refactor: Integrated common.py to eliminate duplicate function definitions in 6 scripts"
 ```
 
 ---
 
-## Task 2: 整合 performance.py 到 plot_rag_retriever.py
+## Task 2: Integrate performance.py into plot_rag_retriever.py
 
 **Files:**
-- Modify: `scripts/plot_rag_retriever.py:50-64` (替换手写 tokenize 为 performance.Tokenizer)
-- Modify: `scripts/config.py` (确认 RetrievalConfig.stopwords 被使用)
+- Modify: `scripts/plot_rag_retriever.py:50-64` (replace hand-written tokenize with performance.Tokenizer)
+- Modify: `scripts/config.py` (confirm RetrievalConfig.stopwords is used)
 - Test: `scripts/test_novel_flow_executor.py`
 
-**Step 1: 修改 plot_rag_retriever.py 使用 performance.Tokenizer**
+**Step 1: Modify plot_rag_retriever.py to Use performance.Tokenizer**
 
 ```python
-# 在文件头部添加
+# Add to the top of the file
 from performance import Tokenizer
 from config import get_retrieval_config
 
-# 替换全局常量
+# Replace global constants
 _retrieval_config = get_retrieval_config()
 STOPWORDS = _retrieval_config.stopwords
 TRIGGER_KEYWORDS = _retrieval_config.trigger_keywords
 LIGHT_SCENE_KEYWORDS = _retrieval_config.light_scene_keywords
 
-# 创建全局 tokenizer 实例
+# Create global tokenizer instance
 _tokenizer = Tokenizer(stopwords=STOPWORDS)
 
-# 替换原有 tokenize 函数
+# Replace original tokenize function
 def tokenize(text: str) -> List[str]:
     return _tokenizer.tokenize(text)
 ```
 
-删除第 50-64 行的手写 tokenize 实现。
+Delete the hand-written tokenize implementation at lines 50-64.
 
-**Step 2: 运行回归测试**
+**Step 2: Run Regression Tests**
 
 Run: `cd /Users/wangbo/Desktop/novel-creator-skill && PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_novel_flow_executor.py`
-Expected: 所有测试通过
+Expected: All tests pass
 
 **Step 3: Commit**
 
 ```bash
 git add scripts/plot_rag_retriever.py
-git commit -m "perf: 整合 performance.Tokenizer 替换手写分词实现"
+git commit -m "perf: Integrate performance.Tokenizer to replace hand-written tokenization implementation"
 ```
 
 ---
 
-## Task 3: 多LLM写作引擎 - 重构 novel_chapter_writer.py
+## Task 3: Multi-LLM Writing Engine - Refactor novel_chapter_writer.py
 
 **Files:**
-- Modify: `scripts/novel_chapter_writer.py` (重构为可导入模块，新增 Kimi/GLM/MiniMax Provider)
-- Create: `scripts/novel_writer_config.template.yaml` (配置模板)
-- Test: 手动验证 `python3 scripts/novel_chapter_writer.py --dry-run --project-root <test-dir>`
+- Modify: `scripts/novel_chapter_writer.py` (refactor as importable module, add Kimi/GLM/MiniMax Provider)
+- Create: `scripts/novel_writer_config.template.yaml` (configuration template)
+- Test: Manual verification `python3 scripts/novel_chapter_writer.py --dry-run --project-root <test-dir>`
 
-**Step 1: 新增 OpenAI 兼容 Provider（覆盖 Kimi/GLM/MiniMax）**
+**Step 1: Add OpenAI-Compatible Provider (Covering Kimi/GLM/MiniMax)**
 
-Kimi 2.5（Moonshot）、GLM-5（智谱）、MiniMax 2.5 均提供 OpenAI 兼容 API。新增一个通用的 OpenAICompatibleProvider：
+Kimi 2.5 (Moonshot), GLM-5 (Zhipu), and MiniMax 2.5 all provide OpenAI-compatible APIs. Add a universal OpenAICompatibleProvider:
 
 ```python
 class OpenAICompatibleProvider(AIProvider):
-    """通用 OpenAI 兼容 API 提供者（Kimi/GLM/MiniMax 等）"""
+    """Universal OpenAI-compatible API provider (Kimi/GLM/MiniMax, etc.)"""
 
     PRESETS = {
         "kimi": {
@@ -177,7 +177,7 @@ class OpenAICompatibleProvider(AIProvider):
             or config.get("api_key", "")
         )
         if not api_key:
-            raise ValueError(f"需要提供 {provider} API Key")
+            raise ValueError(f"API Key for {provider} is required")
 
         self.base_url = base_url
         self.api_key = api_key
@@ -186,7 +186,7 @@ class OpenAICompatibleProvider(AIProvider):
         self.max_tokens = config.get("max_tokens", 4000)
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
-        """调用 OpenAI 兼容 API"""
+        """Call OpenAI-compatible API"""
         import urllib.request
         import json as _json
 
@@ -213,7 +213,7 @@ class OpenAICompatibleProvider(AIProvider):
             return result["choices"][0]["message"]["content"]
 ```
 
-**Step 2: 更新 create_ai_provider 工厂函数**
+**Step 2: Update create_ai_provider Factory Function**
 
 ```python
 def create_ai_provider(config: Dict[str, Any]) -> AIProvider:
@@ -228,15 +228,15 @@ def create_ai_provider(config: Dict[str, Any]) -> AIProvider:
     elif provider in OpenAICompatibleProvider.PRESETS:
         return OpenAICompatibleProvider(config)
     elif config.get("base_url"):
-        # 自定义 OpenAI 兼容 API
+        # Custom OpenAI-compatible API
         return OpenAICompatibleProvider(config)
     else:
-        raise ValueError(f"不支持的AI提供者: {provider}")
+        raise ValueError(f"Unsupported AI provider: {provider}")
 ```
 
-**Step 3: 将 novel_chapter_writer.py 重构为可导入模块**
+**Step 3: Refactor novel_chapter_writer.py into an Importable Module**
 
-将 main() 中的核心逻辑提取为独立函数：
+Extract core logic from main() into independent functions:
 
 ```python
 def write_chapter(
@@ -245,48 +245,48 @@ def write_chapter(
     config_overrides: Optional[Dict[str, Any]] = None,
     dry_run: bool = False,
 ) -> Dict[str, Any]:
-    """自动写作入口，可被外部脚本调用。返回 JSON 结果。"""
-    # ... 现有 main() 逻辑提取至此
+    """Entry point for automatic writing, callable by external scripts. Returns JSON result."""
+    # ... existing main() logic extracted here
 ```
 
-**Step 4: 更新配置模板**
+**Step 4: Update Config Template**
 
-更新 `scripts/novel_writer_config.template.yaml`，添加新 LLM 配置示例。
+Update `scripts/novel_writer_config.template.yaml`, add new LLM configuration examples.
 
-**Step 5: 验证 dry-run 模式**
+**Step 5: Verify dry-run Mode**
 
-Run: `cd /Users/wangbo/Desktop/novel-creator-skill && python3 scripts/novel_chapter_writer.py --project-root novel_projects/穿越大唐之我是皇帝 --dry-run`
-Expected: 输出提示词预览，无报错
+Run: `cd /Users/wangbo/Desktop/novel-creator-skill && python3 scripts/novel_chapter_writer.py --project-root novel_projects/My Prince in Tang Dynasty --dry-run`
+Expected: Output prompt preview, no errors
 
 **Step 6: Commit**
 
 ```bash
 git add scripts/novel_chapter_writer.py scripts/novel_writer_config.template.yaml
-git commit -m "feat: 多LLM引擎支持 Kimi/GLM/MiniMax 及 OpenAI 兼容 API"
+git commit -m "feat: Multi-LLM engine supports Kimi/GLM/MiniMax and OpenAI-compatible API"
 ```
 
 ---
 
-## Task 4: 通用联网调研模块 - research_agent.py
+## Task 4: Universal Online Research Module - research_agent.py
 
 **Files:**
 - Create: `scripts/research_agent.py`
-- Test: `python3 scripts/research_agent.py keywords --genre 历史 --topic "唐朝安史之乱"`
+- Test: `python3 scripts/research_agent.py keywords --genre history --topic "Tang Dynasty An Lushan Rebellion"`
 
-**Step 1: 创建 research_agent.py**
+**Step 1: Create research_agent.py**
 
 ```python
 #!/usr/bin/env python3
-"""通用联网调研工具。
+"""Universal online research tool.
 
-职责：
-1. 根据题材和剧情生成搜索关键词列表
-2. 知识库缺口检测（已有 vs 需要）
-3. 资料结构化存储到 02_knowledge_base/
-4. 调研日志记录
+Responsibilities:
+1. Generate categorized search keyword lists based on genre and plot
+2. Knowledge base gap detection (existing vs needed)
+3. Structured storage of research materials into 02_knowledge_base/
+4. Research log recording
 
-不包含搜索 API 调用 — 搜索由 AI 工具（Claude Code/OpenCode/Codex）执行。
-也支持配置 Tavily/Google API 独立运行。
+Does not include search API calls — search is executed by AI tools (Claude Code/OpenCode/Codex).
+Also supports configuring Tavily/Google API for independent operation.
 """
 
 import argparse
@@ -300,7 +300,7 @@ from typing import Any, Dict, List, Optional, Set
 from common import ensure_dir, read_text, write_text, load_json, save_json
 
 # =========================================================
-# 题材-调研维度映射
+# Genre-Research Dimension Mapping
 # =========================================================
 
 GENRE_RESEARCH_DIMENSIONS = {
@@ -345,10 +345,10 @@ def generate_search_keywords(
     chapter_goal: str = "",
     existing_keywords: Optional[Set[str]] = None,
 ) -> List[Dict[str, str]]:
-    """根据题材和主题生成分类搜索关键词列表。
+    """Generate categorized search keyword list based on genre and topic.
 
     Returns:
-        [{"category": "历史背景", "keyword": "唐朝安史之乱 历史背景", "priority": "high"}, ...]
+        [{"category": "Historical Background", "keyword": "Tang Dynasty An Lushan Rebellion Historical Background", "priority": "high"}, ...]
     """
     dimensions = GENRE_RESEARCH_DIMENSIONS.get(genre, GENRE_RESEARCH_DIMENSIONS["default"])
     existing = existing_keywords or set()
@@ -363,14 +363,14 @@ def generate_search_keywords(
                 "priority": "high" if "背景" in dim or "设定" in dim else "medium",
             })
 
-    # 如果有章节目标，生成针对性关键词
+    # If there is a chapter goal, generate targeted keywords
     if chapter_goal:
-        # 提取关键名词/概念
+        # Extract key nouns/concepts
         for concept in re.findall(r"[\u4e00-\u9fff]{2,6}", chapter_goal):
             kw = f"{topic} {concept}"
             if kw not in existing and len(concept) >= 2:
                 keywords.append({
-                    "category": "章节相关",
+                    "category": "Chapter Related",
                     "keyword": kw,
                     "priority": "high",
                 })
@@ -383,9 +383,10 @@ def detect_knowledge_gaps(
     chapter_goal: str = "",
     genre: str = "",
 ) -> Dict[str, Any]:
-    """检测知识库中的缺口。
+    """Detect gaps in the knowledge base.
 
-    扫描 02_knowledge_base/ 已有内容，与本章需求对比，找出缺失领域。
+    Scans existing content in 02_knowledge_base/, compares with chapter requirements,
+    and identifies missing areas.
 
     Returns:
         {"has_gaps": bool, "gaps": [...], "existing_topics": [...]}
@@ -396,17 +397,17 @@ def detect_knowledge_gaps(
     if kb_dir.exists():
         for f in kb_dir.glob("*.md"):
             content = read_text(f) or ""
-            # 提取一级标题作为已有主题
+            # Extract top-level headings as existing topics
             for match in re.finditer(r"^#+\s+(.+)$", content, re.MULTILINE):
                 existing_topics.append(match.group(1).strip())
 
-    # 分析章节目标中的关键概念
+    # Analyze key concepts in the chapter goal
     needed_concepts = set()
     if chapter_goal:
         for concept in re.findall(r"[\u4e00-\u9fff]{2,8}", chapter_goal):
             needed_concepts.add(concept)
 
-    # 找出已有主题未覆盖的概念
+    # Find concepts not covered by existing topics
     gaps = []
     existing_text = " ".join(existing_topics)
     for concept in needed_concepts:
@@ -427,17 +428,17 @@ def store_research_result(
     content: str,
     source: str = "",
 ) -> str:
-    """将调研结果结构化存储到知识库。
+    """Store research results structuredly into the knowledge base.
 
-    根据类别存储到对应文件，采用增量追加模式。
+    Stores into corresponding files by category, using incremental append mode.
 
     Returns:
-        存储文件路径
+        Path of the stored file
     """
     kb_dir = project_root / "02_knowledge_base"
     ensure_dir(kb_dir)
 
-    # 类别到文件的映射
+    # Category-to-file mapping
     category_file_map = {
         "世界观": "10_worldbuilding.md",
         "历史": "11_research_data.md",
@@ -448,8 +449,8 @@ def store_research_result(
         "参考": "13_reference_materials.md",
     }
 
-    # 匹配最佳文件
-    target_file = "13_reference_materials.md"  # 默认
+    # Match the best file
+    target_file = "13_reference_materials.md"  # default
     for key, filename in category_file_map.items():
         if key in category:
             target_file = filename
@@ -458,11 +459,11 @@ def store_research_result(
     filepath = kb_dir / target_file
     timestamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
 
-    # 增量追加
+    # Incremental append
     existing = read_text(filepath) or f"# {target_file.replace('.md', '').replace('_', ' ')}\n"
     entry = f"\n\n## {category}（{timestamp}）\n\n{content.strip()}\n"
     if source:
-        entry += f"\n> 来源：{source}\n"
+        entry += f"\n> Source: {source}\n"
 
     write_text(filepath, existing.rstrip() + entry)
     return str(filepath)
@@ -475,7 +476,7 @@ def log_research(
     result_summary: str = "",
     source: str = "",
 ) -> None:
-    """记录调研日志。"""
+    """Log research activity."""
     log_path = project_root / "00_memory" / "retrieval" / "research_log.json"
     log_data = load_json(log_path, {"entries": []})
 
@@ -491,7 +492,7 @@ def log_research(
         "timestamp": dt.datetime.now().isoformat(),
     })
 
-    # 限制日志大小
+    # Limit log size
     if len(entries) > 500:
         entries = entries[-500:]
 
@@ -506,19 +507,19 @@ def generate_research_plan(
     chapter_goal: str = "",
     depth: str = "standard",
 ) -> Dict[str, Any]:
-    """生成完整的调研计划（供 AI 工具执行）。
+    """Generate a complete research plan (for AI tools to execute).
 
     Args:
-        genre: 题材
-        topic: 主题/简介
-        project_root: 项目根目录（用于检测已有知识库）
-        chapter_goal: 当前章节目标（可选）
-        depth: 调研深度 quick/standard/deep
+        genre: Genre
+        topic: Subject/overview
+        project_root: Project root directory (for detecting existing knowledge base)
+        chapter_goal: Current chapter goal (optional)
+        depth: Research depth quick/standard/deep
 
     Returns:
         {"keywords": [...], "gaps": {...}, "instructions": "..."}
     """
-    # 生成关键词
+    # Generate keywords
     existing_kw: Set[str] = set()
     if project_root:
         log_path = project_root / "00_memory" / "retrieval" / "research_log.json"
@@ -529,19 +530,19 @@ def generate_research_plan(
 
     keywords = generate_search_keywords(genre, topic, chapter_goal, existing_kw)
 
-    # 根据深度调整关键词数量
+    # Adjust keyword count based on depth
     depth_limits = {"quick": 5, "standard": 15, "deep": 30}
     max_kw = depth_limits.get(depth, 15)
-    # 按优先级排序
+    # Sort by priority
     keywords.sort(key=lambda x: 0 if x["priority"] == "high" else 1)
     keywords = keywords[:max_kw]
 
-    # 检测知识缺口
+    # Detect knowledge gaps
     gaps = {}
     if project_root:
         gaps = detect_knowledge_gaps(project_root, chapter_goal, genre)
 
-    # 生成执行指令（供 SKILL.md 引导 AI 工具执行）
+    # Generate execution instructions (for SKILL.md to guide AI tool execution)
     instructions = _build_research_instructions(keywords, gaps, depth)
 
     return {
@@ -557,26 +558,26 @@ def generate_research_plan(
 
 
 def _build_research_instructions(keywords, gaps, depth):
-    """构建人类/AI可读的调研执行指令。"""
-    lines = ["## 调研执行指令\n"]
-    lines.append(f"调研深度：{depth}\n")
+    """Build human/AI-readable research execution instructions."""
+    lines = ["## Research Execution Instructions\n"]
+    lines.append(f"Research Depth: {depth}\n")
 
     if gaps and gaps.get("has_gaps"):
-        lines.append("### 知识缺口（优先补充）")
+        lines.append("### Knowledge Gaps (Priority to Supplement)")
         for gap in gaps.get("gaps", []):
             lines.append(f"- [ ] {gap}")
         lines.append("")
 
-    lines.append("### 搜索关键词列表")
+    lines.append("### Search Keyword List")
     for i, kw in enumerate(keywords, 1):
         priority_mark = "!!!" if kw["priority"] == "high" else ""
         lines.append(f"{i}. [{kw['category']}] {kw['keyword']} {priority_mark}")
 
-    lines.append("\n### 存储规则")
-    lines.append("- 世界观设定 → 02_knowledge_base/10_worldbuilding.md")
-    lines.append("- 历史/地理/制度 → 02_knowledge_base/11_research_data.md")
-    lines.append("- 写作手法 → 02_knowledge_base/12_style_skills.md")
-    lines.append("- 其他参考 → 02_knowledge_base/13_reference_materials.md")
+    lines.append("\n### Storage Rules")
+    lines.append("- Worldbuilding → 02_knowledge_base/10_worldbuilding.md")
+    lines.append("- History/Geography/Systems → 02_knowledge_base/11_research_data.md")
+    lines.append("- Writing Techniques → 02_knowledge_base/12_style_skills.md")
+    lines.append("- Other References → 02_knowledge_base/13_reference_materials.md")
 
     return "\n".join(lines)
 
@@ -586,36 +587,36 @@ def _build_research_instructions(keywords, gaps, depth):
 # =========================================================
 
 def main():
-    parser = argparse.ArgumentParser(description="通用联网调研工具")
+    parser = argparse.ArgumentParser(description="Universal Online Research Tool")
     sub = parser.add_subparsers(dest="command")
 
-    # keywords 子命令：生成搜索关键词
-    p_kw = sub.add_parser("keywords", help="生成搜索关键词列表")
-    p_kw.add_argument("--genre", required=True, help="题材")
-    p_kw.add_argument("--topic", required=True, help="主题/简介")
-    p_kw.add_argument("--chapter-goal", default="", help="当前章节目标")
-    p_kw.add_argument("--project-root", help="项目根目录")
+    # keywords subcommand: Generate search keywords
+    p_kw = sub.add_parser("keywords", help="Generate search keyword list")
+    p_kw.add_argument("--genre", required=True, help="Genre")
+    p_kw.add_argument("--topic", required=True, help="Subject/overview")
+    p_kw.add_argument("--chapter-goal", default="", help="Current chapter goal")
+    p_kw.add_argument("--project-root", help="Project root directory")
     p_kw.add_argument("--depth", choices=["quick", "standard", "deep"], default="standard")
 
-    # gaps 子命令：检测知识库缺口
-    p_gaps = sub.add_parser("gaps", help="检测知识库缺口")
-    p_gaps.add_argument("--project-root", required=True, help="项目根目录")
-    p_gaps.add_argument("--chapter-goal", default="", help="当前章节目标")
-    p_gaps.add_argument("--genre", default="", help="题材")
+    # gaps subcommand: Detect knowledge base gaps
+    p_gaps = sub.add_parser("gaps", help="Detect knowledge base gaps")
+    p_gaps.add_argument("--project-root", required=True, help="Project root directory")
+    p_gaps.add_argument("--chapter-goal", default="", help="Current chapter goal")
+    p_gaps.add_argument("--genre", default="", help="Genre")
 
-    # store 子命令：存储调研结果
-    p_store = sub.add_parser("store", help="存储调研结果到知识库")
-    p_store.add_argument("--project-root", required=True, help="项目根目录")
-    p_store.add_argument("--category", required=True, help="资料类别")
-    p_store.add_argument("--content", required=True, help="资料内容")
-    p_store.add_argument("--source", default="", help="来源URL")
+    # store subcommand: Store research results
+    p_store = sub.add_parser("store", help="Store research results into knowledge base")
+    p_store.add_argument("--project-root", required=True, help="Project root directory")
+    p_store.add_argument("--category", required=True, help="Material category")
+    p_store.add_argument("--content", required=True, help="Material content")
+    p_store.add_argument("--source", default="", help="Source URL")
 
-    # plan 子命令：生成完整调研计划
-    p_plan = sub.add_parser("plan", help="生成调研计划")
-    p_plan.add_argument("--genre", required=True, help="题材")
-    p_plan.add_argument("--topic", required=True, help="主题/简介")
-    p_plan.add_argument("--project-root", help="项目根目录")
-    p_plan.add_argument("--chapter-goal", default="", help="当前章节目标")
+    # plan subcommand: Generate complete research plan
+    p_plan = sub.add_parser("plan", help="Generate research plan")
+    p_plan.add_argument("--genre", required=True, help="Genre")
+    p_plan.add_argument("--topic", required=True, help="Subject/overview")
+    p_plan.add_argument("--project-root", help="Project root directory")
+    p_plan.add_argument("--chapter-goal", default="", help="Current chapter goal")
     p_plan.add_argument("--depth", choices=["quick", "standard", "deep"], default="standard")
 
     args = parser.parse_args()
@@ -649,37 +650,37 @@ if __name__ == "__main__":
     main()
 ```
 
-**Step 2: 验证运行**
+**Step 2: Verify Execution**
 
-Run: `cd /Users/wangbo/Desktop/novel-creator-skill && python3 scripts/research_agent.py keywords --genre 历史 --topic "唐朝安史之乱"`
-Expected: JSON 输出包含分类搜索关键词
+Run: `cd /Users/wangbo/Desktop/novel-creator-skill && python3 scripts/research_agent.py keywords --genre history --topic "Tang Dynasty An Lushan Rebellion"`
+Expected: JSON output includes categorized search keywords
 
-Run: `python3 scripts/research_agent.py plan --genre 历史 --topic "唐朝安史之乱" --depth standard`
-Expected: JSON 输出包含完整调研计划
+Run: `python3 scripts/research_agent.py plan --genre history --topic "Tang Dynasty An Lushan Rebellion" --depth standard`
+Expected: JSON output includes complete research plan
 
 **Step 3: Commit**
 
 ```bash
 git add scripts/research_agent.py
-git commit -m "feat: 新增通用联网调研模块 research_agent.py"
+git commit -m "feat: Added universal online research module research_agent.py"
 ```
 
 ---
 
-## Task 5: 一键写书调度器 - auto_novel_writer.py
+## Task 5: One-Click Book Writing Scheduler - auto_novel_writer.py
 
 **Files:**
 - Create: `scripts/auto_novel_writer.py`
 - Test: `python3 scripts/auto_novel_writer.py plan --synopsis "..." --target-chars 50000`
 
-**Step 1: 创建 auto_novel_writer.py**
+**Step 1: Create auto_novel_writer.py**
 
 ```python
 #!/usr/bin/env python3
-"""一键写书调度器。
+"""One-Click Book Writing Scheduler.
 
-全自动完成：解析简介 → 联网调研 → 一键开书 → 循环(调研→写作→门禁) → 完成报告。
-支持断点续写：状态持久化到 .flow/auto_write_state.json。
+Fully automates: parse synopsis → online research → one-click create book → loop (research → writing → gate) → Completion Report.
+Supports resumption from breakpoint: state persisted to .flow/auto_write_state.json.
 """
 
 import argparse
@@ -699,7 +700,7 @@ STATE_FILE = "auto_write_state.json"
 
 
 def compute_structure(target_chars: int, chars_per_chapter: int = 3500) -> Dict[str, int]:
-    """根据目标字数计算卷/章结构。"""
+    """Calculate volume/chapter structure based on target character count."""
     total_chapters = max(10, target_chars // chars_per_chapter)
     chars_per_volume = min(450000, max(100000, target_chars // 10))
     total_volumes = max(1, math.ceil(target_chars / chars_per_volume))
@@ -713,14 +714,14 @@ def compute_structure(target_chars: int, chars_per_chapter: int = 3500) -> Dict[
 
 
 def load_state(project_root: Path) -> Dict[str, Any]:
-    """加载执行状态（断点续写）。"""
+    """Load execution state (for resumption from breakpoint)."""
     flow_dir = project_root / ".flow"
     state_path = flow_dir / STATE_FILE
     return load_json(state_path, {})
 
 
 def save_state(project_root: Path, state: Dict[str, Any]) -> None:
-    """保存执行状态。"""
+    """Save execution state."""
     flow_dir = project_root / ".flow"
     ensure_dir(flow_dir)
     state["last_checkpoint"] = dt.datetime.now().isoformat()
@@ -734,7 +735,7 @@ def init_state(
     genre: str,
     research_depth: str,
 ) -> Dict[str, Any]:
-    """初始化一键写书状态。"""
+    """Initialize one-click book writing state."""
     structure = compute_structure(target_chars)
     state = {
         "phase": "init",
@@ -761,7 +762,7 @@ def init_state(
 
 
 def generate_progress_report(state: Dict[str, Any]) -> str:
-    """生成进度报告。"""
+    """Generate a progress report."""
     total = state.get("total_chapters", 1)
     written = state.get("chapters_written", 0)
     pct = round(written / total * 100, 1) if total > 0 else 0
@@ -775,22 +776,22 @@ def generate_progress_report(state: Dict[str, Any]) -> str:
     pass_rate = round(passes / total_gates * 100, 1) if total_gates > 0 else 0
 
     lines = [
-        "# 一键写书进度报告",
+        "# One-Click Book Writing Progress Report",
         "",
-        f"- 当前卷：第{state.get('current_volume', 0)}卷 / 共{state.get('total_volumes', 0)}卷",
-        f"- 章节进度：{written}/{total} ({pct}%)",
-        f"- 字数进度：{chars:,}/{target:,} ({chars_pct}%)",
-        f"- 门禁通过率：{pass_rate}% ({passes}/{total_gates})",
-        f"- 自动修复次数：{state.get('auto_repairs', 0)}",
-        f"- 联网调研次数：{state.get('research_queries', 0)}",
-        f"- 开始时间：{state.get('started_at', 'N/A')}",
-        f"- 最后检查点：{state.get('last_checkpoint', 'N/A')}",
+        f"- Current Volume: Volume {state.get('current_volume', 0)} / {state.get('total_volumes', 0)}",
+        f"- Chapter Progress: {written}/{total} ({pct}%)",
+        f"- Character Progress: {chars:,}/{target:,} ({chars_pct}%)",
+        f"- Gate Pass Rate: {pass_rate}% ({passes}/{total_gates})",
+        f"- Auto Repair Count: {state.get('auto_repairs', 0)}",
+        f"- Online Research Count: {state.get('research_queries', 0)}",
+        f"- Start Time: {state.get('started_at', 'N/A')}",
+        f"- Last Checkpoint: {state.get('last_checkpoint', 'N/A')}",
     ]
     return "\n".join(lines)
 
 
 def generate_plan(args: argparse.Namespace) -> Dict[str, Any]:
-    """生成一键写书执行计划（不实际执行）。"""
+    """Generate a one-click book writing Execution Plan (without actual execution)."""
     structure = compute_structure(args.target_chars)
 
     plan = {
@@ -801,34 +802,34 @@ def generate_plan(args: argparse.Namespace) -> Dict[str, Any]:
         "target_chars": args.target_chars,
         **structure,
         "phases": [
-            {"phase": "research", "desc": f"基础调研（{args.research_depth}深度）"},
-            {"phase": "init", "desc": "一键开书（建模+建库+首章准备）"},
+            {"phase": "research", "desc": f"Basic research ({args.research_depth} depth)"},
+            {"phase": "init", "desc": "One-Click Book Creation (Modeling + Database Creation + First Chapter Preparation)"},
             {
                 "phase": "writing",
-                "desc": f"自动写作循环（{structure['total_chapters']}章）",
-                "per_chapter": "调研缺口→联网补充→继续写→门禁→索引更新",
+                "desc": f"Automatic writing loop ({structure['total_chapters']} chapters)",
+                "per_chapter": "Research Gap → Online Supplement → Continue Writing → Gate Check → Index Update",
             },
-            {"phase": "report", "desc": "完成报告"},
+            {"phase": "report", "desc": "Completion Report"},
         ],
-        "estimated_api_calls": structure["total_chapters"] * 2,  # 写作+门禁
-        "note": "使用 'run' 子命令执行此计划，支持断点续写",
+        "estimated_api_calls": structure["total_chapters"] * 2,  # Writing + Gate Check
+        "note": "Use the 'run' subcommand to execute this plan, supports resumption from breakpoint",
     }
     return plan
 
 
 def run_auto_write(args: argparse.Namespace) -> Dict[str, Any]:
-    """执行一键写书主循环。
+    """Execute the main one-click book writing loop.
 
-    此函数输出执行指令到 stdout（JSON 格式），
-    实际的 AI 写作和联网调研由调用方（AI 工具或脚本）执行。
+    This function outputs execution instructions to stdout (JSON format),
+    actual AI writing and online research are executed by the caller (AI tool or script).
     """
     project_root = Path(args.project_root).expanduser().resolve()
     ensure_dir(project_root)
 
-    # 检查是否有断点
+    # Check for breakpoint
     state = load_state(project_root)
     if state and not state.get("completed") and state.get("phase") != "init":
-        # 断点续写
+        # Resume from breakpoint
         return {
             "ok": True,
             "command": "run",
@@ -839,7 +840,7 @@ def run_auto_write(args: argparse.Namespace) -> Dict[str, Any]:
             "next_action": _next_action(state),
         }
 
-    # 全新开始
+    # Fresh start
     state = init_state(
         project_root,
         args.synopsis,
@@ -856,41 +857,41 @@ def run_auto_write(args: argparse.Namespace) -> Dict[str, Any]:
         "state": state,
         "next_action": {
             "phase": "research",
-            "instruction": "执行基础联网调研",
+            "instruction": "Execute basic online research",
             "command": f"python3 scripts/research_agent.py plan --genre '{args.genre}' --topic '{args.synopsis[:100]}' --depth {args.research_depth}",
         },
     }
 
 
 def _next_action(state: Dict[str, Any]) -> Dict[str, Any]:
-    """根据当前状态计算下一步操作。"""
+    """Calculate the next action based on current state."""
     phase = state.get("phase", "init")
     chapter = state.get("current_chapter", 0)
     total = state.get("total_chapters", 0)
 
     if phase == "research":
-        return {"phase": "init", "instruction": "执行 /一键开书"}
+        return {"phase": "init", "instruction": "Execute /One-Click Book Creation"}
     elif phase == "init":
-        return {"phase": "writing", "instruction": "开始写作循环，执行第1章的 /继续写"}
+        return {"phase": "writing", "instruction": "Start writing loop, execute /Continue-Writing for Chapter 1"}
     elif phase == "writing":
         if chapter >= total:
-            return {"phase": "complete", "instruction": "生成完成报告"}
+            return {"phase": "complete", "instruction": "Generate Completion Report"}
         vol = state.get("current_volume", 1)
         cpv = state.get("chapters_per_volume", 40)
         is_sprint_review = (chapter % 10 == 0) and chapter > 0
         is_volume_end = (chapter % cpv == 0) and chapter > 0
-        instruction = f"执行第{chapter + 1}章的 /继续写"
+        instruction = f"Execute /Continue-Writing for Chapter {chapter + 1}"
         if is_sprint_review:
-            instruction = f"第{chapter}章冲刺复盘 → 然后{instruction}"
+            instruction = f"Chapter {chapter} Sprint Review → Then {instruction}"
         if is_volume_end:
-            instruction = f"第{vol}卷结束汇报 → 然后{instruction}"
+            instruction = f"Volume {vol} End Report → Then {instruction}"
         return {"phase": "writing", "chapter": chapter + 1, "instruction": instruction}
     else:
-        return {"phase": "complete", "instruction": "一键写书已完成"}
+        return {"phase": "complete", "instruction": "One-Click Book Writing Completed"}
 
 
 def update_progress(args: argparse.Namespace) -> Dict[str, Any]:
-    """更新进度（供外部调用者报告章节完成）。"""
+    """Update progress (called by external caller to report chapter completion)."""
     project_root = Path(args.project_root).expanduser().resolve()
     state = load_state(project_root)
     if not state:
@@ -904,11 +905,11 @@ def update_progress(args: argparse.Namespace) -> Dict[str, Any]:
     else:
         state["gate_failures"] = state.get("gate_failures", 0) + 1
 
-    # 计算当前卷
+    # Calculate current volume
     cpv = state.get("chapters_per_volume", 40)
     state["current_volume"] = max(1, math.ceil(args.chapter / cpv))
 
-    # 检查是否完成
+    # Check if completed
     if args.chapter >= state.get("total_chapters", 0):
         state["phase"] = "complete"
         state["completed"] = True
@@ -924,34 +925,34 @@ def update_progress(args: argparse.Namespace) -> Dict[str, Any]:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="一键写书调度器")
+    parser = argparse.ArgumentParser(description="One-Click Book Writing Scheduler")
     sub = parser.add_subparsers(dest="command")
 
-    # plan: 生成执行计划
-    p_plan = sub.add_parser("plan", help="生成执行计划（不实际执行）")
-    p_plan.add_argument("--synopsis", required=True, help="小说简介")
-    p_plan.add_argument("--target-chars", type=int, default=2000000, help="目标字数（默认200万）")
-    p_plan.add_argument("--genre", default="", help="题材（可选，从简介推断）")
+    # plan: Generate Execution Plan
+    p_plan = sub.add_parser("plan", help="Generate Execution Plan (does not actually execute)")
+    p_plan.add_argument("--synopsis", required=True, help="Novel Synopsis")
+    p_plan.add_argument("--target-chars", type=int, default=2000000, help="Target Character Count (Default 2M)")
+    p_plan.add_argument("--genre", default="", help="Genre (Optional, Inferred from Synopsis)")
     p_plan.add_argument("--research-depth", choices=["quick", "standard", "deep"], default="standard")
 
-    # run: 执行一键写书
-    p_run = sub.add_parser("run", help="执行一键写书（支持断点续写）")
-    p_run.add_argument("--project-root", required=True, help="项目根目录")
-    p_run.add_argument("--synopsis", default="", help="小说简介（新开始时必需）")
-    p_run.add_argument("--target-chars", type=int, default=2000000, help="目标字数")
-    p_run.add_argument("--genre", default="", help="题材")
+    # run: Execute one-click book writing
+    p_run = sub.add_parser("run", help="Execute one-click book writing (supports resumption from breakpoint)")
+    p_run.add_argument("--project-root", required=True, help="Project root directory")
+    p_run.add_argument("--synopsis", default="", help="Novel Synopsis (required for new sessions)")
+    p_run.add_argument("--target-chars", type=int, default=2000000, help="Target character count")
+    p_run.add_argument("--genre", default="", help="Genre")
     p_run.add_argument("--research-depth", choices=["quick", "standard", "deep"], default="standard")
 
-    # progress: 查看/更新进度
-    p_prog = sub.add_parser("progress", help="查看或更新进度")
-    p_prog.add_argument("--project-root", required=True, help="项目根目录")
-    p_prog.add_argument("--chapter", type=int, default=0, help="当前章节号（更新用）")
-    p_prog.add_argument("--chars-added", type=int, default=0, help="新增字数")
-    p_prog.add_argument("--gate-passed", action="store_true", help="门禁是否通过")
+    # progress: View/Update progress
+    p_prog = sub.add_parser("progress", help="View or update progress")
+    p_prog.add_argument("--project-root", required=True, help="Project root directory")
+    p_prog.add_argument("--chapter", type=int, default=0, help="Current chapter number (for update)")
+    p_prog.add_argument("--chars-added", type=int, default=0, help="Characters added")
+    p_prog.add_argument("--gate-passed", action="store_true", help="Whether the gate passed")
 
-    # report: 生成进度报告
-    p_report = sub.add_parser("report", help="生成进度报告")
-    p_report.add_argument("--project-root", required=True, help="项目根目录")
+    # report: Generate progress report
+    p_report = sub.add_parser("report", help="Generate progress report")
+    p_report.add_argument("--project-root", required=True, help="Project root directory")
 
     args = parser.parse_args()
 
@@ -988,171 +989,171 @@ if __name__ == "__main__":
     main()
 ```
 
-**Step 2: 验证运行**
+**Step 2: Verify Execution**
 
-Run: `cd /Users/wangbo/Desktop/novel-creator-skill && python3 scripts/auto_novel_writer.py plan --synopsis "现代青年穿越到唐朝成为太子" --target-chars 50000 --genre 历史`
-Expected: JSON 输出包含执行计划、卷章结构
+Run: `cd /Users/wangbo/Desktop/novel-creator-skill && python3 scripts/auto_novel_writer.py plan --synopsis "Modern youth travels to Tang Dynasty as crown prince" --target-chars 50000 --genre history`
+Expected: JSON output includes execution plan and volume/chapter structure
 
 **Step 3: Commit**
 
 ```bash
 git add scripts/auto_novel_writer.py
-git commit -m "feat: 新增一键写书调度器 auto_novel_writer.py"
+git commit -m "feat: Added one-click book writing scheduler auto_novel_writer.py"
 ```
 
 ---
 
-## Task 6: 更新 SKILL.md - 新增 /联网调研 和 /一键写书 命令
+## Task 6: Update SKILL.md - Add /Online Research and /One-Click Book Writing Commands
 
 **Files:**
 - Modify: `SKILL.md`
 
-**Step 1: 在 SKILL.md 的命令表中新增两个命令**
+**Step 1: Add two commands to the SKILL.md command table**
 
-在 "## 7. 全命令表" 的表格中追加：
+Append to the table in "## 7. Full Command Table":
 
 ```markdown
-| `/联网调研` | 通用联网调研，生成搜索关键词并补充知识库 | 写前调研、知识缺口补充、手动查询特定领域资料 |
-| `/一键写书` | 全自动完成整本书：调研→开书→循环写作→完成 | 用户只需提供简介和目标字数，系统全自动完成 |
+| `/Online Research` | Universal online research, generates search keywords and supplements the knowledge base | Pre-writing research, knowledge gap supplementation, manual lookup of domain-specific materials |
+| `/One-Click Book Writing` | Fully automates an entire book: research → create book → loop writing → completion | User only needs to provide synopsis and target character count; the system completes everything automatically |
 ```
 
-**Step 2: 在 SKILL.md 新增 /联网调研 执行流程**
+**Step 2: Add /Online Research execution flow to SKILL.md**
 
-在命令表之后新增一个段落：
+Add a new paragraph after the command table:
 
 ```markdown
-## 9. 联网调研（通用能力）
+## 9. Online Research (Universal Capability)
 
-`/联网调研 [主题/关键词]` —— 在任何写作场景中可用。
+`/Online Research [Topic/Keywords]` — Available in any writing scenario.
 
-执行流程：
-1. 运行 `python3 scripts/research_agent.py plan --genre <题材> --topic "<主题>" --project-root <目录>` 获取搜索关键词和知识缺口
-2. 按关键词列表逐条联网搜索（使用当前 AI 工具的搜索能力）
-3. 将搜索结果通过 `python3 scripts/research_agent.py store --project-root <目录> --category "<类别>" --content "<内容>"` 存入知识库
-4. 自动集成到 `/继续写` 流程：每章写前检测知识缺口并自动补充
+Execution flow:
+1. Run `python3 scripts/research_agent.py plan --genre <genre> --topic "<topic>" --project-root <directory>` to get search keywords and knowledge gaps
+2. Search online for each keyword in the list (using the current AI tool's search capability)
+3. Store search results via `python3 scripts/research_agent.py store --project-root <directory> --category "<category>" --content "<content>"` into the knowledge base
+4. Automatically integrated into `/Continue-Writing` flow: detects knowledge gaps before each chapter and auto-supplements
 
-调研深度：`quick`（5条关键词）| `standard`（15条）| `deep`（30条）
+Research depth: `quick` (5 keywords) | `standard` (15) | `deep` (30)
 ```
 
-**Step 3: 在 SKILL.md 新增 /一键写书 执行流程**
+**Step 3: Add /One-Click Book Writing execution flow to SKILL.md**
 
 ```markdown
-## 10. 一键写书（全自动模式）
+## 10. One-Click Book Writing (Fully Automated Mode)
 
-`/一键写书 简介="..." [目标字数=200万] [调研深度=standard]`
+`/One-Click Book Writing synopsis="..." [target_chars=2M] [research_depth=standard]`
 
-执行流程：
-1. 解析简介，提取题材、核心冲突、主角目标
-2. 运行 `/联网调研` 进行基础调研
-3. 自动执行 `/一键开书` 初始化项目
-4. 循环执行（直到达到目标字数）：
-   a. 分析本章知识需求，检测缺口
-   b. `/联网调研` 补充缺失资料
-   c. `/继续写` 完成写作+门禁
-   d. 门禁失败 → 自动修复（最多3次）
-   e. 每10章冲刺复盘
-   f. 每卷结束输出进度报告
-5. 生成完成报告
+Execution flow:
+1. Parse synopsis, extract genre, core conflict, protagonist goal
+2. Run `/Online Research` for basic research
+3. Automatically execute `/One-Click Create Book` to initialize the project
+4. Loop execution (until target character count reached):
+    a. Analyze chapter knowledge requirements, detect gaps
+    b. `/Online Research` to supplement missing materials
+    c. `/Continue-Writing` to complete Writing + Gate Check
+    d. Gate failure → Auto-repair (max 3 attempts)
+    e. Sprint review every 10 chapters
+    f. Volume-end progress report
+5. Generate Completion Report
 
-断点续写：中断后再次执行 `/一键写书`，系统自动从断点恢复。
+Resume from breakpoint: executing `/One-Click Book Writing` again after interruption, the system automatically resumes from the breakpoint.
 
-状态查询：`python3 scripts/auto_novel_writer.py report --project-root <目录>`
+Status query: `python3 scripts/auto_novel_writer.py report --project-root <directory>`
 ```
 
 **Step 4: Commit**
 
 ```bash
 git add SKILL.md
-git commit -m "feat: SKILL.md 新增 /联网调研 和 /一键写书 命令定义"
+git commit -m "feat: SKILL.md Add /Online Research and /One-Click Book Writing command definitions"
 ```
 
 ---
 
-## Task 7: 整合 continue-write 支持自动调研
+## Task 7: Integrate continue-write to Support Auto Research
 
 **Files:**
-- Modify: `scripts/novel_flow_executor.py` (在 continue_write 函数中添加调研触发)
+- Modify: `scripts/novel_flow_executor.py` (add research trigger in continue_write function)
 
-**Step 1: 在 continue_write 函数中添加调研检测**
+**Step 1: Add research detection in the continue_write function**
 
-在 `continue_write()` 函数的 RAG 查询之后、写作之前，添加知识缺口检测调用：
+After the RAG query in the `continue_write()` function and before writing, add a knowledge gap detection call:
 
 ```python
-# 在 q_code 检查之后，chapter_path 确定之后添加：
+# After q_code check, before chapter_path is determined, add:
 if args.auto_research:
     from research_agent import detect_knowledge_gaps, generate_search_keywords
     gaps = detect_knowledge_gaps(project_root, query)
     if gaps.get("has_gaps"):
-        # 将缺口信息输出到结果中，供 AI 工具执行联网调研
+        # Output gap information in the result for AI tools to execute online research
         research_needed = gaps
 ```
 
-在 argparse 部分新增参数：
+Add parameter in the argparse section:
 ```python
 p_cw.add_argument("--auto-research", action="store_true", default=False,
-                   help="写前自动检测知识缺口并提示调研")
+                   help="Automatically detect knowledge gaps and prompt for research before writing")
 ```
 
-**Step 2: 运行回归测试**
+**Step 2: Run Regression Tests**
 
 Run: `cd /Users/wangbo/Desktop/novel-creator-skill && PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_novel_flow_executor.py`
-Expected: 所有测试通过
+Expected: All tests pass
 
 **Step 3: Commit**
 
 ```bash
 git add scripts/novel_flow_executor.py
-git commit -m "feat: continue-write 支持 --auto-research 知识缺口检测"
+git commit -m "feat: continue-write supports --auto-research knowledge gap detection"
 ```
 
 ---
 
-## Task 8: 编写详细使用说明文档
+## Task 8: Write Detailed User Guide Documentation
 
 **Files:**
 - Create: `references/user-guide.md`
 
-**Step 1: 编写用户指南**
+**Step 1: Write User Guide**
 
-包含以下章节：
-1. **快速上手（5分钟开始写书）** - 最简三步：安装→一键开书→继续写
-2. **安装配置** - Claude Code / OpenCode / Codex / Gemini CLI 安装方法
-3. **多LLM配置** - OpenAI / Claude / Kimi / GLM / MiniMax 配置示例
-4. **新手三命令** - /一键开书、/继续写、/修复本章 详解
-5. **联网调研** - 手动调研、自动调研、知识库管理
-6. **一键写书** - 完整教程、断点续写、进度查看
-7. **进阶用法** - 风格定制、批量写作、百万字路线图
-8. **常见问题** - FAQ 和故障排查
+Include the following chapters:
+1. **Quick Start (Start Writing in 5 Minutes)** — Simplest three steps: install → one-click create book → continue writing
+2. **Installation & Configuration** — Installation methods for Claude Code / OpenCode / Codex / Gemini CLI
+3. **Multi-LLM Configuration** — Configuration examples for OpenAI / Claude / Kimi / GLM / MiniMax
+4. **Three Key Commands for Beginners** — Detailed explanation of /One-Click Create Book, /Continue-Writing, /Fix This Chapter
+5. **Online Research** — Manual research, automatic research, knowledge base management
+6. **One-Click Book Writing** — Full tutorial, resume from breakpoint, progress viewing
+7. **Advanced Usage** — Style customization, batch writing, million-word roadmap
+8. **FAQ** — Frequently asked questions and troubleshooting
 
 **Step 2: Commit**
 
 ```bash
 git add references/user-guide.md
-git commit -m "docs: 新增详细使用说明文档 user-guide.md"
+git commit -m "docs: Added detailed user guide documentation user-guide.md"
 ```
 
 ---
 
-## Task 9: 更新 CLAUDE.md 和版本号
+## Task 9: Update CLAUDE.md and Version Number
 
 **Files:**
 - Modify: `CLAUDE.md`
 - Modify: `scripts/config.py`
 
-**Step 1: 更新 CLAUDE.md 添加新脚本入口**
+**Step 1: Update CLOUDE.md to Add New Script Entry Points**
 
-新增 research_agent.py 和 auto_novel_writer.py 的命令说明。
+Add command descriptions for research_agent.py and auto_novel_writer.py.
 
-**Step 2: 更新版本号到 v8.0**
+**Step 2: Update Version Number to v8.0**
 
-**Step 3: 运行全量回归测试**
+**Step 3: Run Full Regression Tests**
 
 Run: `cd /Users/wangbo/Desktop/novel-creator-skill && PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_novel_flow_executor.py`
-Expected: 所有测试通过
+Expected: All tests pass
 
 **Step 4: Commit**
 
 ```bash
 git add CLAUDE.md scripts/config.py
-git commit -m "chore: 更新 CLAUDE.md 和版本号至 v8.0"
+git commit -m "chore: Updated CLAUDE.md and version number to v8.0"
 ```

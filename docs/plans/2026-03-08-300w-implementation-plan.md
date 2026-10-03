@@ -1,52 +1,52 @@
-# Novel Creator v10.0 实施计划
+# Novel Creator v10.0 Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 将9个孤立高级脚本全部接入 continue-write 主流程，实现知识图谱闭环、大纲锚点推进、Beat Sheet写作、AI痕迹自动纠正、风格跨章自动更新，使 novel-creator-skill 真正支撑300万字长篇小说创作不混乱，写作风格接近人类。
+**Goal:** Integrate all 9 isolated advanced scripts into the continue-write main flow, achieving knowledge graph closed-loop, outline anchor advancement, Beat Sheet writing, AI trace auto-correction, and cross-chapter style auto-update, so that novel-creator-skill truly supports 3 million character novel creation without inconsistency and with human-like writing style.
 
-**Architecture:** Phase A 修复数据闭环（图谱只写不读、锚点只查不推进）；Phase B 升级写作质量管道（Beat Sheet流水线 + humanizer自动纠正 + 风格自动更新）；Phase C 改默认值为True，补测试，更新SKILL.md。所有修改均在 `novel_flow_executor.py` 和各对应脚本中进行，保持向后兼容。
+**Architecture:** Phase A fixes the data closed-loop (graph write-only but not read, anchor query-only but not advancing); Phase B upgrades the writing quality pipeline (Beat Sheet pipeline + humanizer auto-correction + style auto-update); Phase C changes defaults to True, adds tests, and updates SKILL.md. All modifications are made in `novel_flow_executor.py` and the corresponding scripts, maintaining backward compatibility.
 
-**Tech Stack:** Python 3.9+，argparse，json，pathlib，subprocess；无外部依赖。
+**Tech Stack:** Python 3.9+, argparse, json, pathlib, subprocess; no external dependencies.
 
 ---
 
-## Phase A：数据闭环修复
+## Phase A: Data Closed-Loop Fix
 
-### Task A1：story_graph_builder 新增 generate-context 子命令
+### Task A1: story_graph_builder Adds generate-context Subcommand
 
 **Files:**
 - Modify: `scripts/story_graph_builder.py`
-- Test: `scripts/tests/test_story_graph_context.py`（新建）
+- Test: `scripts/tests/test_story_graph_context.py` (new)
 
-**背景：**
-目前 `story_graph_builder.py` 只有 CRUD 操作（add-node/add-edge/export/validate），没有为写作生成上下文摘要的能力。这是知识图谱"只写不读"的根本原因。
+**Background:**
+Currently `story_graph_builder.py` only has CRUD operations (add-node/add-edge/export/validate). It lacks the ability to generate a context summary for writing. This is the root cause of the knowledge graph being "write-only but not read."
 
-**Step 1: 在 `story_graph_builder.py` 中找到 parse_args 函数，在其他子命令之后添加 context 子命令**
+**Step 1: In `story_graph_builder.py`, find the parse_args function and add the context subcommand after the other subcommands**
 
-定位：`parse_args()` 函数，在最后一个 `sub.add_parser` 之后插入：
+Locate: `parse_args()` function, insert after the last `sub.add_parser`:
 
 ```python
-# generate-context 子命令
-s_ctx = sub.add_parser("generate-context", help="生成写作上下文摘要")
+# generate-context subcommand
+s_ctx = sub.add_parser("generate-context", help="Generate writing context summary")
 s_ctx.add_argument("--project-root", required=True)
-s_ctx.add_argument("--chapter", type=int, default=0, help="当前章节号（用于过滤近期事件）")
-s_ctx.add_argument("--max-foreshadows", type=int, default=5, help="最多展示未解决伏笔数")
-s_ctx.add_argument("--max-events", type=int, default=5, help="最多展示近期事件数")
+s_ctx.add_argument("--chapter", type=int, default=0, help="Current chapter number (for filtering recent events)")
+s_ctx.add_argument("--max-foreshadows", type=int, default=5, help="Maximum number of unresolved foreshadowing entries to display")
+s_ctx.add_argument("--max-events", type=int, default=5, help="Maximum number of recent events to display")
 ```
 
-**Step 2: 在 `story_graph_builder.py` 中新增 `cmd_context` 函数**
+**Step 2: Add `cmd_context` function in `story_graph_builder.py`**
 
-在 `cmd_validate` 函数之后添加：
+Add after the `cmd_validate` function:
 
 ```python
 def cmd_context(args: argparse.Namespace, cfg: GraphConfig) -> Dict[str, Any]:
-    """生成写作上下文摘要，注入写前 query。
+    """Generate writing context summary for injection into writing query.
 
-    从 story_graph.json 中提取：
-    - 所有角色节点的当前位置和状态
-    - 未解决的伏笔节点
-    - 近期事件节点（按章节号倒序）
-    并组合成可直接注入 writing_query 的中文摘要字符串。
+    Extracts from story_graph.json:
+    - Current location and status of all character nodes
+    - Unresolved foreshadowing nodes
+    - Recent event nodes (sorted by chapter number in reverse)
+    And combines them into a Chinese summary string ready for injection into writing_query.
     """
     root = Path(args.project_root).expanduser().resolve()
     graph = _load_graph(_graph_path(root, cfg), cfg)
@@ -57,18 +57,18 @@ def cmd_context(args: argparse.Namespace, cfg: GraphConfig) -> Dict[str, Any]:
     max_foreshadows = args.max_foreshadows
     max_events = args.max_events
 
-    # 1. 角色当前状态
+    # 1. Current character status
     characters = [n for n in nodes if isinstance(n, dict) and n.get("type") == "character"]
     char_lines = []
     for c in characters:
-        name = c.get("name", c.get("id", "未知"))
-        loc = c.get("location", "未知")
-        status = c.get("status", "正常")
+        name = c.get("name", c.get("id", "Unknown"))
+        loc = c.get("location", "Unknown")
+        status = c.get("status", "Normal")
         if status.lower() in {"dead", "deceased"}:
-            continue  # 已死亡角色不注入
-        char_lines.append(f"- {name}：当前位于「{loc}」，状态={status}")
+            continue  # Do not inject dead characters
+        char_lines.append(f"- {name}: currently at \"{loc}\", status={status}")
 
-    # 2. 未解决伏笔
+    # 2. Unresolved foreshadowing
     foreshadows = [
         n for n in nodes
         if isinstance(n, dict)
@@ -81,11 +81,11 @@ def cmd_context(args: argparse.Namespace, cfg: GraphConfig) -> Dict[str, Any]:
     )[:max_foreshadows]
     foreshadow_lines = [
         f"- [{n.get('id','')}] {n.get('description','')}"
-        f"（埋于第{n.get('chapter_planted','')}章，截止第{n.get('chapter_deadline','?')}章）"
+        f" (planted in ch{n.get('chapter_planted','')}, deadline ch{n.get('chapter_deadline','?')})"
         for n in foreshadows_sorted
     ]
 
-    # 3. 近期事件
+    # 3. Recent events
     events = [
         n for n in nodes
         if isinstance(n, dict)
@@ -98,18 +98,18 @@ def cmd_context(args: argparse.Namespace, cfg: GraphConfig) -> Dict[str, Any]:
         reverse=True,
     )[:max_events]
     event_lines = [
-        f"- 第{n.get('chapter','')}章：{n.get('description','')}"
+        f"- Chapter {n.get('chapter','')}: {n.get('description','')}"
         for n in events_recent
     ]
 
-    # 组合上下文 prompt
+    # Combine context prompt
     sections = []
     if char_lines:
-        sections.append("【角色状态】\n" + "\n".join(char_lines))
+        sections.append("【Character Status】\n" + "\n".join(char_lines))
     if foreshadow_lines:
-        sections.append("【待回收伏笔】\n" + "\n".join(foreshadow_lines))
+        sections.append("【Pending Foreshadowing回收】\n" + "\n".join(foreshadow_lines))
     if event_lines:
-        sections.append("【近期事件】\n" + "\n".join(event_lines))
+        sections.append("【Recent Events】\n" + "\n".join(event_lines))
 
     context_prompt = "\n\n".join(sections) if sections else ""
 
@@ -121,23 +121,23 @@ def cmd_context(args: argparse.Namespace, cfg: GraphConfig) -> Dict[str, Any]:
         "foreshadow_count": len(foreshadow_lines),
         "event_count": len(event_lines),
         "graph_nodes_total": len(nodes),
-        "message": "图谱上下文已生成" if context_prompt else "图谱为空，无上下文可注入",
+        "message": "Graph context generated" if context_prompt else "Graph is empty, no context to inject",
     }
 ```
 
-**Step 3: 在 `main()` 函数的 dispatch 字典中添加 `generate-context`**
+**Step 3: Add `generate-context` in the dispatch dictionary of the `main()` function**
 
-找到 `main()` 函数中的 dispatch 逻辑，添加：
+Find the dispatch logic in `main()` and add:
 ```python
 "generate-context": cmd_context,
 ```
 
-**Step 4: 写测试**
+**Step 4: Write tests**
 
-新建 `scripts/tests/test_story_graph_context.py`：
+Create `scripts/tests/test_story_graph_context.py`:
 
 ```python
-"""story_graph_builder generate-context 子命令测试。"""
+"""story_graph_builder generate-context subcommand tests."""
 import json
 import subprocess
 import sys
@@ -176,56 +176,56 @@ def test_empty_graph_returns_empty_prompt():
 def test_character_location_injected():
     with tempfile.TemporaryDirectory() as tmp:
         _make_graph(Path(tmp), [
-            {"id": "char_a", "type": "character", "name": "李逍遥",
-             "location": "蜀山", "status": "正常"},
+            {"id": "char_a", "type": "character", "name": "Li Xiaoyao",
+             "location": "Shu Mountain", "status": "Normal"},
         ])
         result = _run(tmp)
     assert result["ok"] is True
-    assert "李逍遥" in result["context_prompt"]
-    assert "蜀山" in result["context_prompt"]
+    assert "Li Xiaoyao" in result["context_prompt"]
+    assert "Shu Mountain" in result["context_prompt"]
     assert result["character_count"] == 1
 
 
 def test_dead_character_excluded():
     with tempfile.TemporaryDirectory() as tmp:
         _make_graph(Path(tmp), [
-            {"id": "char_dead", "type": "character", "name": "赵灵儿",
-             "location": "天界", "status": "dead"},
+            {"id": "char_dead", "type": "character", "name": "Zhao Ling'er",
+             "location": "Heavenly Realm", "status": "dead"},
         ])
         result = _run(tmp)
     assert result["character_count"] == 0
-    assert "赵灵儿" not in result["context_prompt"]
+    assert "Zhao Ling'er" not in result["context_prompt"]
 
 
 def test_unresolved_foreshadow_injected():
     with tempfile.TemporaryDirectory() as tmp:
         _make_graph(Path(tmp), [
-            {"id": "fore_01", "type": "foreshadow", "description": "神秘玉佩",
+            {"id": "fore_01", "type": "foreshadow", "description": "Mysterious Jade Pendant",
              "resolved": False, "chapter_planted": 5, "chapter_deadline": 50},
         ])
         result = _run(tmp)
-    assert "神秘玉佩" in result["context_prompt"]
+    assert "Mysterious Jade Pendant" in result["context_prompt"]
     assert result["foreshadow_count"] == 1
 
 
 def test_resolved_foreshadow_excluded():
     with tempfile.TemporaryDirectory() as tmp:
         _make_graph(Path(tmp), [
-            {"id": "fore_02", "type": "foreshadow", "description": "已解决的伏笔",
+            {"id": "fore_02", "type": "foreshadow", "description": "Resolved foreshadowing",
              "resolved": True, "chapter_planted": 1, "chapter_deadline": 10},
         ])
         result = _run(tmp)
     assert result["foreshadow_count"] == 0
 ```
 
-**Step 5: 运行测试验证**
+**Step 5: Run tests for verification**
 
 ```bash
-cd /Users/ethan/Desktop/小说/novel-creator-skill
+cd /Users/ethan/Desktop/Novel/novel-creator-skill
 python -m pytest scripts/tests/test_story_graph_context.py -v
 ```
 
-期望：4个测试全部 PASS
+Expected: All 4 tests PASS
 
 **Step 6: Commit**
 
@@ -236,20 +236,20 @@ git commit -m "feat(graph): add generate-context subcommand for writing context 
 
 ---
 
-### Task A2：continue-write 写前注入图谱上下文
+### Task A2: continue-write Injects Graph Context Before Writing
 
 **Files:**
-- Modify: `scripts/novel_flow_executor.py`（`_collect_writing_constraints` 函数，约 85-130 行）
+- Modify: `scripts/novel_flow_executor.py` (`_collect_writing_constraints` function, approx. lines 85-130)
 
-**背景：**
-`_collect_writing_constraints` 已调用 outline_anchor、anti_resolution、event_matrix，但没有调用图谱上下文。需要在此函数中添加对 `story_graph_builder generate-context` 的调用，并将结果注入 `writing_query`。
+**Background:**
+`_collect_writing_constraints` already calls outline_anchor, anti_resolution, and event_matrix, but does not call the graph context. Need to add a call to `story_graph_builder generate-context` within this function and inject the result into `writing_query`.
 
-**Step 1: 在 `_collect_writing_constraints` 末尾，在 `return constraints` 之前添加图谱上下文调用**
+**Step 1: At the end of `_collect_writing_constraints`, before `return constraints`, add graph context call**
 
-找到函数内容，在 event_matrix 调用之后、`return constraints` 之前插入：
+Find the function content and insert a graph context call after the event_matrix call and before `return constraints`:
 
 ```python
-    # 图谱上下文注入（已初始化图谱时生效）
+    # Graph context injection (takes effect when graph is initialized)
     graph_file = project_root / "00_memory" / "story_graph.json"
     if graph_file.exists():
         g_code, g_out, _g_err, g_payload = run_python(
@@ -264,9 +264,9 @@ git commit -m "feat(graph): add generate-context subcommand for writing context 
             constraints["graph_context"] = g_payload
 ```
 
-**Step 2: 在 `continue_write` 中，处理 `graph_context` 注入到 `writing_query`**
+**Step 2: In `continue_write`, handle `graph_context` injection into `writing_query`**
 
-在处理 `writing_constraints` 注入 `writing_query` 的代码段（约 1174-1198 行），`injected_lines` 末尾添加：
+In the code segment where `writing_constraints` are injected into `writing_query` (approx. lines 1174-1198), append the following at the end of `injected_lines`:
 
 ```python
             graph_ctx = writing_constraints.get("graph_context")
@@ -276,37 +276,37 @@ git commit -m "feat(graph): add generate-context subcommand for writing context 
                     injected_lines.append(ctx_prompt.strip())
 ```
 
-**Step 3: 写测试（在已有测试文件中追加）**
+**Step 3: Write test (append to existing test file)**
 
-在 `scripts/tests/test_integration.py` 中追加：
+Append to `scripts/tests/test_integration.py`:
 
 ```python
 def test_graph_context_injected_when_graph_exists(tmp_path):
-    """图谱存在时，写前约束应包含图谱上下文。"""
+    """When graph exists, writing constraints should include graph context."""
     from novel_flow_executor import _collect_writing_constraints
-    # 建立最小项目结构
+    # Build minimal project structure
     mem = tmp_path / "00_memory"
     mem.mkdir()
     graph = {
         "version": "1.0",
-        "nodes": [{"id": "c1", "type": "character", "name": "测试角色",
-                   "location": "测试城市", "status": "正常"}],
+        "nodes": [{"id": "c1", "type": "character", "name": "Test Character",
+                   "location": "Test City", "status": "Normal"}],
         "edges": [], "timeline": []
     }
     (mem / "story_graph.json").write_text(
         json.dumps(graph, ensure_ascii=False), encoding="utf-8"
     )
-    chapter_file = tmp_path / "03_manuscript" / "第001章.md"
+    chapter_file = tmp_path / "03_manuscript" / "Chapter 001.md"
     chapter_file.parent.mkdir()
-    chapter_file.write_text("# 第001章\n\n正文。", encoding="utf-8")
+    chapter_file.write_text("# Chapter 001\n\nBody.", encoding="utf-8")
 
     import argparse
-    constraints = _collect_writing_constraints(tmp_path, chapter_file, "测试query")
+    constraints = _collect_writing_constraints(tmp_path, chapter_file, "Test query")
     assert "graph_context" in constraints
-    assert "测试角色" in constraints["graph_context"].get("context_prompt", "")
+    assert "Test Character" in constraints["graph_context"].get("context_prompt", "")
 ```
 
-**Step 4: 运行测试**
+**Step 4: Run tests**
 
 ```bash
 python -m pytest scripts/tests/test_integration.py -v -k "graph_context"
@@ -321,17 +321,17 @@ git commit -m "feat(executor): inject story graph context into writing_query bef
 
 ---
 
-### Task A3：门禁通过后自动 apply 图谱更新 + advance 锚点
+### Task A3: Auto apply Graph Updates + Advance Anchor After Gate Pass
 
 **Files:**
-- Modify: `scripts/novel_flow_executor.py`（`continue_write` 函数约 1319-1348 行）
+- Modify: `scripts/novel_flow_executor.py` (`continue_write` function, approx. lines 1319-1348)
 
-**背景：**
-当前代码：`story_graph_updater extract` 生成建议文件，但 `apply` 从未被调用；`outline_anchor advance` 从未被调用。需要在 `gate_passed_final and chapter_path` 的代码块中补充这两个调用。
+**Background:**
+Current code: `story_graph_updater extract` generates suggestion files, but `apply` is never called; `outline_anchor advance` is never called. These two calls need to be added in the block after `gate_passed_final and chapter_path`.
 
-**Step 1: 在 `--auto-graph-update` 的处理块中，`extract` 调用之后追加 `apply`**
+**Step 1: In the `--auto-graph-update` processing block, append `apply` after the `extract` call**
 
-找到约 1324 行的代码段：
+Find the code segment at approx. line 1324:
 ```python
             if args.auto_graph_update and _chapter_no > 0:
                 _, _g_out, _g_err, _g_payload = run_python(
@@ -340,10 +340,10 @@ git commit -m "feat(executor): inject story graph context into writing_query bef
                 )
 ```
 
-在 `extract` 的 `run_python` 调用之后，立即追加：
+Immediately after the `extract` `run_python` call, append:
 
 ```python
-                # apply：将提取的更新建议写入知识图谱
+                # apply: Write extracted update suggestions into the knowledge graph
                 if isinstance(_g_payload, dict) and _g_payload.get("ok"):
                     update_file = _g_payload.get("update_file", "")
                     if update_file:
@@ -356,10 +356,10 @@ git commit -m "feat(executor): inject story graph context into writing_query bef
                         )
 ```
 
-**Step 2: 在 `--auto-batch-review` 处理之后追加 `outline_anchor advance`**
+**Step 2: After `--auto-batch-review` processing, append `outline_anchor advance`**
 
 ```python
-            # 大纲锚点推进：门禁通过后将锚点推进到下一章
+            # Outline anchor advancement: after gate passes, advance the anchor to the next chapter
             if args.enable_constraints and _chapter_no > 0:
                 run_python(
                     SCRIPT_DIR / "outline_anchor_manager.py",
@@ -369,26 +369,26 @@ git commit -m "feat(executor): inject story graph context into writing_query bef
                 )
 ```
 
-**Step 3: 写测试**
+**Step 3: Write tests**
 
-在 `scripts/tests/test_integration.py` 中追加：
+Append to `scripts/tests/test_integration.py`:
 
 ```python
 def test_graph_apply_called_after_extract(tmp_path, monkeypatch):
-    """extract 成功时应立即调用 apply。"""
+    """apply should be called immediately after extract succeeds."""
     calls = []
     def mock_run_python(script, args_list):
         calls.append((Path(script).name, args_list[0]))
         return (0, '{"ok":true,"update_file":"/tmp/ch0001_updates.json"}', "",
                 {"ok": True, "update_file": "/tmp/ch0001_updates.json"})
 
-    # 验证调用顺序：extract 后紧跟 apply
+    # Verify call order: extract immediately followed by apply
     extract_idx = next((i for i, c in enumerate(calls)
                         if c == ("story_graph_updater.py", "extract")), -1)
     apply_idx = next((i for i, c in enumerate(calls)
                       if c == ("story_graph_updater.py", "apply")), -1)
-    # 此测试需要在集成层面运行，基础结构验证如下：
-    assert True  # placeholder，完整集成测试见 benchmark_novel_flow.py
+    # This test needs to be run at the integration level; the basic structure is verified as follows:
+    assert True  # placeholder, full integration test see benchmark_novel_flow.py
 ```
 
 **Step 4: Commit**
@@ -400,19 +400,19 @@ git commit -m "fix(executor): call story_graph_updater apply after extract; adva
 
 ---
 
-## Phase B：写作质量管道
+## Phase B: Writing Quality Pipeline
 
-### Task B1：Beat Sheet 流水线接入 continue-write
+### Task B1: Beat Sheet Pipeline Integrated into continue-write
 
 **Files:**
 - Modify: `scripts/novel_flow_executor.py`
 
-**背景：**
-当前写作只有 `generate_draft_text`（模板填充）和 `novel_chapter_writer.write_chapter`（LLM全文）。Beat Sheet 流水线是第三种写作模式：先生成 Beat 骨架，再逐 Beat 扩写（可以是 LLM 或模板），最后 chapter_synthesizer 合成。
+**Background:**
+Current writing only has `generate_draft_text` (template filling) and `novel_chapter_writer.write_chapter` (LLM full text). The Beat Sheet pipeline is a third writing mode: first generate a Beat skeleton, then expand each Beat (either LLM or template), and finally chapter_synthesizer merges them.
 
-**Step 1: 在 `novel_flow_executor.py` 中新增 `_generate_beat_draft` 函数**
+**Step 1: Add `_generate_beat_draft` function in `novel_flow_executor.py`**
 
-在 `generate_draft_text` 函数之后（约 840 行之后）插入：
+Insert after the `generate_draft_text` function (approx. line 840):
 
 ```python
 def _generate_beat_draft(
@@ -423,15 +423,15 @@ def _generate_beat_draft(
     writing_constraints: Optional[Dict[str, object]],
     args: argparse.Namespace,
 ) -> Tuple[bool, str]:
-    """Beat Sheet 流水线：generate → expand → synthesize。
+    """Beat Sheet Pipeline: generate → expand → synthesize.
 
-    返回 (success: bool, mode: str)。
-    成功时 chapter_path 已被写入合成草稿。
-    失败时返回 (False, error_reason)，调用方应回退到普通 draft 模式。
+    Returns (success: bool, mode: str).
+    On success, chapter_path has been written with synthesized draft.
+    On failure, return (False, error_reason), caller should fall back to regular draft mode.
     """
-    chapter_goal = query[:200]  # 截断保证参数合法
+    chapter_goal = query[:200]  # truncated to ensure parameter validity
 
-    # Step 1: 生成 Beat Sheet 骨架
+    # Step 1: Generate Beat Sheet skeleton
     beat_args = [
         "generate",
         "--project-root", str(project_root),
@@ -448,7 +448,7 @@ def _generate_beat_draft(
     beat_sheet_file = b_payload.get("beat_sheet_file", "")
     beat_count = int(b_payload.get("beat_count", 4))
 
-    # Step 2: 逐 Beat 扩写（LLM 模式或模板模式）
+    # Step 2: Expand each Beat (LLM mode or template mode)
     beats_dir = project_root / "00_memory" / "beats"
     beats_dir.mkdir(parents=True, exist_ok=True)
     draft_provider = getattr(args, "draft_provider", "template")
@@ -468,7 +468,7 @@ def _generate_beat_draft(
         beat_file = beats_dir / f"ch{chapter_no:04d}_beat{beat_id:02d}.md"
 
         if draft_provider == "llm" and expand_prompt:
-            # LLM 模式：用扩写 prompt 调用 novel_chapter_writer
+            # LLM mode: use the expansion prompt to call novel_chapter_writer
             try:
                 from novel_chapter_writer import write_chapter
                 overrides: Dict[str, object] = {"writing_prompt": expand_prompt}
@@ -485,15 +485,15 @@ def _generate_beat_draft(
                     dry_run=False,
                 )
                 if not llm_result.get("ok"):
-                    # LLM 失败，回退到 prompt 模板写入
+                    # LLM failed, fall back to prompt template write
                     write_text(beat_file, expand_prompt)
             except Exception:
                 write_text(beat_file, expand_prompt)
         else:
-            # 模板模式：将扩写指令写入 beat 文件
+            # Template mode: write expansion instructions to beat file
             write_text(beat_file, expand_prompt)
 
-    # Step 3: chapter_synthesizer 合成
+    # Step 3: chapter_synthesizer merges
     s_code, _s_out, _s_err, s_payload = run_python(
         SCRIPT_DIR / "chapter_synthesizer.py",
         ["synthesize",
@@ -507,12 +507,12 @@ def _generate_beat_draft(
     mode = s_payload.get("mode", "unknown")
 
     if mode == "draft_merged" and output_file and Path(output_file).exists():
-        # 将合成稿复制到章节文件
+        # Copy synthesized draft to chapter file
         synth_text = read_text(Path(output_file))
         write_text(chapter_path, synth_text)
         return True, "beat_sheet_llm"
     elif mode == "prompt_only" and output_file and Path(output_file).exists():
-        # 模板模式：合成 prompt 写入章节文件作为结构化草稿
+        # Template mode: write synthesized prompt to chapter file as structured draft
         synth_prompt = read_text(Path(output_file))
         stub = f"# {chapter_path.stem}\n\n<!-- BEAT_SHEET_STUB -->\n\n{synth_prompt}\n"
         write_text(chapter_path, stub)
@@ -521,12 +521,12 @@ def _generate_beat_draft(
     return False, "synthesize_no_output"
 ```
 
-**Step 2: 在 `continue_write` 中，在判断 `chapter_is_draft_stub` 之前调用 Beat Sheet 流水线**
+**Step 2: In `continue_write`, call Beat Sheet pipeline before the `chapter_is_draft_stub` check**
 
-在约 1200 行的 `auto_draft_applied = False` 之后、`if chapter_is_draft_stub(chapter_path) and args.auto_draft:` 之前插入：
+Insert after `auto_draft_applied = False` at approx. line 1200, before `if chapter_is_draft_stub(chapter_path) and args.auto_draft:`
 
 ```python
-        # Beat Sheet 流水线（优先于普通 draft，默认开启）
+        # Beat Sheet pipeline (prioritized over regular draft, enabled by default)
         beat_applied = False
         beat_mode = ""
         if getattr(args, "use_beat_sheet", True) and chapter_is_draft_stub(chapter_path):
@@ -539,34 +539,34 @@ def _generate_beat_draft(
                 draft_provider_used = beat_mode
 ```
 
-**Step 3: 新增 `--use-beat-sheet` 和 `--beat-count` 参数**
+**Step 3: Add `--use-beat-sheet` and `--beat-count` parameters**
 
-在 `parse_args` 中 `p_cont` 参数列表末尾追加：
+Append to the `p_cont` parameter list in `parse_args`:
 
 ```python
     p_cont.add_argument("--use-beat-sheet", dest="use_beat_sheet",
                         action="store_true", default=True,
-                        help="使用 Beat Sheet 流水线写作（默认开启）")
+                        help="Use Beat Sheet pipeline for writing (enabled by default)")
     p_cont.add_argument("--no-beat-sheet", dest="use_beat_sheet",
                         action="store_false",
-                        help="禁用 Beat Sheet 流水线，回退到普通草稿模式")
+                        help="Disable Beat Sheet pipeline, fall back to regular draft mode")
     p_cont.add_argument("--beat-count", type=int, default=4,
-                        help="每章 Beat 数量（3-5），默认 4")
+                        help="Number of Beats per chapter (3-5), default 4")
 ```
 
-**Step 4: 写测试**
+**Step 4: Write tests**
 
-在 `scripts/tests/test_integration.py` 中追加：
+Append to `scripts/tests/test_integration.py`:
 
 ```python
 def test_generate_beat_draft_fallback_on_no_beatsheet(tmp_path):
-    """Beat Sheet 不存在时（新项目），_generate_beat_draft 应返回 False 而非崩溃。"""
+    """When Beat Sheet does not exist (new project), _generate_beat_draft should return False without crashing."""
     import sys
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from novel_flow_executor import _generate_beat_draft
     import argparse
 
-    chapter_file = tmp_path / "03_manuscript" / "第001章.md"
+    chapter_file = tmp_path / "03_manuscript" / "Chapter 001.md"
     chapter_file.parent.mkdir(parents=True)
     chapter_file.write_text("# stub\n\n<!-- NOVEL_FLOW_STUB -->", encoding="utf-8")
 
@@ -574,14 +574,14 @@ def test_generate_beat_draft_fallback_on_no_beatsheet(tmp_path):
         draft_provider="template", beat_count=4,
         llm_provider=None, llm_model=None, llm_api_key=None,
     )
-    # 新项目没有锚点文件，beat_sheet_generator 会正常生成骨架
-    # 但 chapter_synthesizer 因无 Beat 扩写文件会返回 prompt_only
-    success, mode = _generate_beat_draft(tmp_path, chapter_file, 1, "推进剧情", None, args)
-    # 不崩溃即可，mode 可能是 beat_sheet_template 或 False
+    # New project has no anchor file, beat_sheet_generator will normally generate skeleton
+    # But chapter_synthesizer will return prompt_only due to no Beat expansion files
+    success, mode = _generate_beat_draft(tmp_path, chapter_file, 1, "Advance Plot", None, args)
+    # Should not crash; mode could be beat_sheet_template or False
     assert isinstance(success, bool)
 ```
 
-**Step 5: 运行测试**
+**Step 5: Run tests**
 
 ```bash
 python -m pytest scripts/tests/test_integration.py -v -k "beat"
@@ -596,17 +596,17 @@ git commit -m "feat(executor): integrate Beat Sheet pipeline as default writing 
 
 ---
 
-### Task B2：text_humanizer 自动纠正循环
+### Task B2: text_humanizer Auto-Correction Loop
 
 **Files:**
-- Modify: `scripts/novel_flow_executor.py`（`write_gate_artifacts` 函数，约 860-919 行）
+- Modify: `scripts/novel_flow_executor.py` (`write_gate_artifacts` function, approx. lines 860-919)
 
-**背景：**
-`text_humanizer` 现在只调用 `report` 子命令，生成检测报告但不自动纠正。需要在检测到 severity >= medium 时，调用 `prompt` 子命令生成纠正 prompt，并在 LLM 模式下自动重写章节文件（最多2轮）。
+**Background:**
+`text_humanizer` currently only calls the `report` subcommand, generating a detection report but not auto-correcting. When severity >= medium is detected, it needs to call the `prompt` subcommand to generate a correction prompt, and in LLM mode, automatically rewrite the chapter file (max 2 rounds).
 
-**Step 1: 在 `write_gate_artifacts` 函数中扩展 humanizer 逻辑**
+**Step 1: Expand humanizer logic in `write_gate_artifacts` function**
 
-找到约 897-910 行的现有 humanizer 调用：
+Find the existing humanizer call at approx. lines 897-910:
 
 ```python
     h_code, _h_out, _h_err, h_payload = run_python(
@@ -615,7 +615,7 @@ git commit -m "feat(executor): integrate Beat Sheet pipeline as default writing 
     )
 ```
 
-替换为以下扩展版本：
+Replace with the following extended version:
 
 ```python
     h_code, _h_out, _h_err, h_payload = run_python(
@@ -627,7 +627,7 @@ git commit -m "feat(executor): integrate Beat Sheet pipeline as default writing 
     _SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2}
     if (h_code == 0 and isinstance(h_payload, dict) and h_payload.get("ok")
             and _SEVERITY_ORDER.get(h_payload.get("severity", "low"), 0) >= 1):
-        # severity >= medium：尝试自动纠正（最多2轮）
+        # severity >= Medium: attempt auto-correction (max 2 rounds)
         while humanizer_rounds < 2:
             p_code, _p_out, _p_err, p_payload = run_python(
                 SCRIPT_DIR / "text_humanizer.py",
@@ -638,10 +638,10 @@ git commit -m "feat(executor): integrate Beat Sheet pipeline as default writing 
             humanize_prompt = p_payload.get("humanize_prompt", "")
             if not humanize_prompt:
                 break
-            # 仅在 LLM 模式下自动重写
+            # Auto-rewrite only in LLM mode
             draft_provider = getattr(quality, "__dict__", {}).get("draft_provider", "template")
-            # 从 chapter_path 同级的 .flow/auto_write_state.json 读取 provider 信息
-            # 简化处理：检查环境变量 NOVEL_LLM_PROVIDER
+            # Read provider info from .flow/auto_write_state.json at the same level as chapter_path
+            # Simplified handling: check NOVEL_LLM_PROVIDER environment variable
             import os
             llm_provider = os.environ.get("NOVEL_LLM_PROVIDER", "")
             if llm_provider:
@@ -661,28 +661,28 @@ git commit -m "feat(executor): integrate Beat Sheet pipeline as default writing 
                 except Exception:
                     pass
             humanizer_rounds += 1
-            # 重新检测，判断是否还需要继续
+            # Re-detect, determine if need to continue
             re_code, _, _, re_payload = run_python(
                 SCRIPT_DIR / "text_humanizer.py",
                 ["report", "--chapter-file", str(chapter_path)],
             )
             if (re_code == 0 and isinstance(re_payload, dict)
                     and _SEVERITY_ORDER.get(re_payload.get("severity", "low"), 0) < 1):
-                h_payload = re_payload  # 更新报告
+                h_payload = re_payload  # Update report
                 break
             if not llm_provider:
-                break  # 非 LLM 模式只生成 prompt，不循环
+                break  # Non-LLM mode only generates prompt, no loop
 ```
 
-**Step 2: 在 `humanizer_section` 中记录自动纠正轮数**
+**Step 2: Record auto-correction round count in `humanizer_section`**
 
-在 `humanizer_section` 赋值处追加轮数信息：
+Append round count info at the `humanizer_section` assignment:
 
 ```python
         if humanizer_auto_fixed:
-            humanizer_section += f"\n\n（自动纠正已执行 {humanizer_rounds} 轮）"
+            humanizer_section += f"\n\n(Auto-Correction Executed {humanizer_rounds} Rounds)"
         elif humanizer_rounds > 0:
-            humanizer_section += f"\n\n（已生成润色 prompt，需人工执行 /校稿 完成纠正）"
+            humanizer_section += f"\n\n(Polishing Prompt Generated, Need to Manually Execute /Copy Edit to Complete Correction)"
 ```
 
 **Step 3: Commit**
@@ -694,24 +694,24 @@ git commit -m "feat(humanizer): add auto-correction loop for AI pattern severity
 
 ---
 
-### Task B3：style_fingerprint 每 N 章自动更新风格基准
+### Task B3: style_fingerprint Auto-Updates Style Anchor Every N Chapters
 
 **Files:**
-- Modify: `scripts/novel_flow_executor.py`（`continue_write` 函数，门禁通过后的写后处理块）
+- Modify: `scripts/novel_flow_executor.py` (`continue_write` function, post-gate-passing post-write processing block)
 
-**Step 1: 在门禁通过后的写后处理块中，批量审核代码之后追加风格更新逻辑**
+**Step 1: In the post-write-processing block after gate pass, append style update logic after batch review code**
 
-在约 1348 行 `batch_review_task` 赋值之后插入：
+Insert after the `batch_review_task` assignment at approx. line 1348:
 
 ```python
-        # 风格基准自动更新：每 N 章更新一次（默认每10章）
+        # Style Anchor Auto-Update: Update Every N Chapters (Default Every 10)
         style_update_file: Optional[str] = None
         if (getattr(args, "auto_style_update", True)
                 and gate_passed_final and chapter_path):
             _style_interval = getattr(args, "style_update_interval", 10)
             _chapter_count = len(_chapter_numbers) if "_chapter_numbers" in dir() else 0
             if _chapter_count > 0 and _chapter_count % _style_interval == 0:
-                # 取最近 N 章的稿件作为风格样本
+                # Use the last N chapters' manuscript as style sample
                 recent_chapters = sorted(
                     [p for p in manuscript_dir.glob("*.md") if p.is_file()],
                     key=lambda p: chapter_no_from_name(p.name),
@@ -730,24 +730,24 @@ git commit -m "feat(humanizer): add auto-correction loop for AI pattern severity
                         style_update_file = s_payload.get("output_file", "")
 ```
 
-**Step 2: 新增参数**
+**Step 2: Add new parameters**
 
-在 `parse_args` 末尾追加：
+Append to the end of `parse_args`:
 
 ```python
     p_cont.add_argument("--auto-style-update", dest="auto_style_update",
                         action="store_true", default=True,
-                        help="每 N 章自动更新风格基准（默认开启）")
+                        help="Auto-update style baseline every N chapters (enabled by default)")
     p_cont.add_argument("--no-style-update", dest="auto_style_update",
                         action="store_false",
-                        help="禁用风格基准自动更新")
+                        help="Disable automatic style baseline update")
     p_cont.add_argument("--style-update-interval", type=int, default=10,
-                        help="风格更新章节间隔，默认 10")
+                        help="Chapter interval for style update, default 10")
 ```
 
-**Step 3: 将 `style_update_file` 写入 result 返回值**
+**Step 3: Write `style_update_file` into the result return value**
 
-在 `result` 字典中追加：
+Append to the `result` dictionary:
 
 ```python
             "style_update_file": style_update_file,
@@ -762,48 +762,48 @@ git commit -m "feat(executor): auto-update style fingerprint every N chapters af
 
 ---
 
-## Phase C：默认值变更 + 测试 + SKILL.md
+## Phase C: Default Value Changes + Tests + SKILL.md
 
-### Task C1：所有高级功能改为默认开启
+### Task C1: Change All Advanced Features to Default On
 
 **Files:**
-- Modify: `scripts/novel_flow_executor.py`（`parse_args` 函数）
+- Modify: `scripts/novel_flow_executor.py` (`parse_args` function)
 
-**Step 1: 修改以下参数的 `default` 值**
+**Step 1: Modify the `default` values of the following parameters**
 
-找到以下 `add_argument` 调用，将 `default=False` 改为 `default=True`：
+Find the following `add_argument` calls, change `default=False` to `default=True`:
 
-| 参数 | 旧默认 | 新默认 |
-|------|--------|--------|
+| Parameter | Old Default | New Default |
+|-----------|-------------|-------------|
 | `--enable-constraints` | False | True |
 | `--auto-graph-update` | False | True |
 | `--auto-batch-review` | False | True |
 | `--auto-research` | False | True |
 
-同时，对应添加逆向 `--no-*` 参数，保持向后兼容：
+At the same time, correspondingly add reverse `--no-*` parameters to maintain backward compatibility:
 
 ```python
     p_cont.add_argument("--no-constraints", dest="enable_constraints",
                         action="store_false",
-                        help="禁用写前约束注入（高级用户）")
+                        help="Disable pre-writing constraint injection (advanced users)")
     p_cont.add_argument("--no-graph-update", dest="auto_graph_update",
                         action="store_false",
-                        help="禁用图谱自动更新")
+                        help="Disable automatic graph update")
     p_cont.add_argument("--no-batch-review", dest="auto_batch_review",
                         action="store_false",
-                        help="禁用每10章批量审核")
+                        help="Disable batch review every 10 chapters")
     p_cont.add_argument("--no-research", dest="auto_research",
                         action="store_false",
-                        help="禁用写前知识缺口调研")
+                        help="Disable pre-writing knowledge gap research")
 ```
 
-**Step 2: 验证默认值变更不破坏已有测试**
+**Step 2: Verify default value changes do not break existing tests**
 
 ```bash
 python -m pytest scripts/tests/ -v
 ```
 
-期望：全部通过，无回归。
+Expected: All pass, no regressions.
 
 **Step 3: Commit**
 
@@ -814,35 +814,35 @@ git commit -m "feat(defaults): enable all advanced features by default for maxim
 
 ---
 
-### Task C2：全流程集成测试（冒烟测试）
+### Task C2: Full Pipeline Integration Test (Smoke Test)
 
 **Files:**
-- Modify: `scripts/test_novel_flow_executor.py`（追加新测试用例）
+- Modify: `scripts/test_novel_flow_executor.py` (append new test cases)
 
-**Step 1: 追加 continue-write 完整管道冒烟测试**
+**Step 1: Append continue-write full pipeline smoke test**
 
 ```python
 def test_continue_write_full_pipeline_smoke():
-    """continue-write 全功能默认参数冒烟测试：验证不崩溃、返回正确结构。"""
+    """continue-write full-function default parameter smoke test: verify no crash and correct return structure."""
     import tempfile, subprocess, sys, json
     from pathlib import Path
 
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        # 建立最小项目结构
+        # Build minimal project structure
         (root / "00_memory").mkdir()
         (root / "03_manuscript").mkdir()
         (root / "02_knowledge_base").mkdir()
         (root / "00_memory" / "novel_plan.md").write_text(
-            "# 测试计划\n第一卷：测试（第1-10章）", encoding="utf-8"
+            "# Test Plan\nVolume 1: Testing (Chapters 1-10)", encoding="utf-8"
         )
         (root / "00_memory" / "novel_state.md").write_text(
-            "# 当前状态\n当前章节：1", encoding="utf-8"
+            "# Current State\nCurrent Chapter: 1", encoding="utf-8"
         )
-        # 预置一个已有内容的章节文件（跳过写作，直接测试门禁）
-        ch = root / "03_manuscript" / "第001章_测试章节.md"
+        # Pre-place a chapter file with content (skip writing, directly test gate)
+        ch = root / "03_manuscript" / "Chapter 001_Test Chapter.md"
         ch.write_text(
-            "# 第001章 测试章节\n\n" + "这是测试正文。" * 200,
+            "# Chapter 001 Test Chapter\n\n" + "This is test body text." * 200,
             encoding="utf-8"
         )
 
@@ -850,33 +850,33 @@ def test_continue_write_full_pipeline_smoke():
             [sys.executable, "scripts/novel_flow_executor.py",
              "continue-write",
              "--project-root", str(root),
-             "--query", "推进剧情",
+             "--query", "Advance Plot",
              "--chapter-file", str(ch),
-             "--no-beat-sheet",      # 跳过 beat sheet（章节已有内容）
-             "--no-constraints",     # 跳过约束（无锚点文件）
-             "--no-graph-update",    # 跳过图谱（无图谱文件）
-             "--no-batch-review",    # 跳过审核（章节数不足）
-             "--no-style-update",    # 跳过风格更新
-             "--no-research",        # 跳过调研
+             "--no-beat-sheet",      # Skip Beat Sheet (chapter already has content)
+             "--no-constraints",     # Skip constraints (no anchor file)
+             "--no-graph-update",    # Skip graph (no graph file)
+             "--no-batch-review",    # Skip review (insufficient chapters)
+             "--no-style-update",    # Skip style update
+             "--no-research",        # Skip research
              ],
             capture_output=True, text=True,
-            cwd="/Users/ethan/Desktop/小说/novel-creator-skill"
+            cwd="/Users/ethan/Desktop/Novel/novel-creator-skill"
         )
 
-        assert result.returncode in (0, 1), f"崩溃：{result.stderr}"
+        assert result.returncode in (0, 1), f"Crashed: {result.stderr}"
         payload = json.loads(result.stdout)
         assert "ok" in payload
         assert "command" in payload
         assert payload["command"] == "continue-write"
 
 def test_continue_write_defaults_include_new_features():
-    """验证 parse_args 的新功能默认值均为 True。"""
+    """Verify parse_args new feature defaults are all True."""
     import sys
     sys.path.insert(0, "scripts")
     import importlib
     nfe = importlib.import_module("novel_flow_executor")
 
-    # 模拟最小参数
+    # Simulate minimum parameters
     import unittest.mock as mock
     with mock.patch("sys.argv", ["novel_flow_executor.py", "continue-write",
                                   "--project-root", "/tmp", "--query", "test"]):
@@ -890,20 +890,20 @@ def test_continue_write_defaults_include_new_features():
     assert args.auto_style_update is True
 ```
 
-**Step 2: 运行全部测试**
+**Step 2: Run all tests**
 
 ```bash
-cd /Users/ethan/Desktop/小说/novel-creator-skill
+cd /Users/ethan/Desktop/Novel/novel-creator-skill
 python -m pytest scripts/tests/ scripts/test_novel_flow_executor.py -v 2>&1 | tail -30
 ```
 
-期望：全部测试通过，无 FAIL 或 ERROR。
+Expected: All tests pass, no FAIL or ERROR.
 
-**Step 3: 验证编译无错误**
+**Step 3: Verify compilation has no errors**
 
 ```bash
 python -m py_compile scripts/novel_flow_executor.py scripts/story_graph_builder.py
-echo "编译检查通过"
+echo "Compilation check passed"
 ```
 
 **Step 4: Commit**
@@ -915,36 +915,36 @@ git commit -m "test: add smoke tests for full continue-write pipeline and defaul
 
 ---
 
-### Task C3：更新 SKILL.md 能力矩阵
+### Task C3: Update SKILL.md Capability Matrix
 
 **Files:**
 - Modify: `SKILL.md`
 
-**Step 1: 将以下功能从 `[规划中]` 改为 `[已实现]`**
+**Step 1: Change the following features from `[Planned]` to `[Implemented]`**
 
-找到能力矩阵中的以下条目，更新状态：
+Find the following entries in the capability matrix and update status:
 
-| 功能 | 旧状态 | 新状态 |
-|------|--------|--------|
-| 大纲锚点 + 进度配额强约束 | `[规划中]` | `[已实现]` |
-| 多步流水线写作（Beat Sheet） | `[规划中]` | `[已实现]` |
-| 反向刹车（Anti-Resolution） | `[规划中]` | `[已实现]` |
-| 事件矩阵 + 冷却机制 | `[规划中]` | `[已实现]` |
-| 跨Agent双智能体审核 | `[规划中]` | `[已实现]` |
-| 知识图谱（第3层） | `[规划中]` | `[已实现]` |
+| Feature | Old Status | New Status |
+|---------|-----------|------------|
+| Outline anchors + progress quota hard constraints | `[Planned]` | `[Implemented]` |
+| Multi-step pipeline writing (Beat Sheet) | `[Planned]` | `[Implemented]` |
+| Anti-resolution (reverse braking) | `[Planned]` | `[Implemented]` |
+| Event matrix + cooldown mechanism | `[Planned]` | `[Implemented]` |
+| Cross-agent dual-agent review | `[Planned]` | `[Implemented]` |
+| Knowledge graph (Layer 3) | `[Planned]` | `[Implemented]` |
 
-**Step 2: 更新 `/继续写` 命令示例，移除多余参数**
+**Step 2: Update `/Continue-Writing` command examples, remove extra parameters**
 
-将 CLAUDE.md 和 SKILL.md 中的 `continue-write` 命令示例从带大量参数版本简化为：
+Simplify the `continue-write` command examples in CLAUDE.md and SKILL.md from the version with many parameters to:
 
 ```bash
-# 标准用法（全功能默认开启）
+# Standard Usage (All Features Enabled by Default)
 python3 scripts/novel_flow_executor.py continue-write \
-  --project-root <项目目录> --query "<新剧情>"
+  --project-root <project directory> --query "<new plot>"
 
-# 高级用户禁用部分功能
+# Advanced Users Disable Some Features
 python3 scripts/novel_flow_executor.py continue-write \
-  --project-root <项目目录> --query "<新剧情>" \
+  --project-root <project directory> --query "<new plot>" \
   --no-beat-sheet --no-constraints
 ```
 
@@ -957,26 +957,26 @@ git commit -m "docs(skill): update capability matrix to reflect fully implemente
 
 ---
 
-## 验收清单
+## Acceptance Checklist
 
 ```bash
-# 1. 编译检查
+# 1. Compilation check
 python -m py_compile scripts/novel_flow_executor.py scripts/story_graph_builder.py
 python -m py_compile scripts/*.py
 
-# 2. 全部测试通过
+# 2. All tests pass
 python -m pytest scripts/tests/ scripts/test_novel_flow_executor.py -v
 
-# 3. 图谱上下文功能验证
+# 3. Graph context feature verification
 python scripts/story_graph_builder.py generate-context --project-root /tmp/test_proj
 
-# 4. 默认值验证
+# 4. Default value verification
 python -c "
 import sys; sys.argv=['x','continue-write','--project-root','/tmp','--query','t']
 import novel_flow_executor as nfe
 args = nfe.parse_args()
 assert args.enable_constraints and args.auto_graph_update
 assert args.use_beat_sheet and args.auto_style_update
-print('✓ 所有默认值正确')
+print('✓ All default values correct')
 "
 ```

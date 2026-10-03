@@ -1,196 +1,196 @@
-# 命令手册（详细版）
+# Command Playbook (Detailed Version)
 
-## 0. 每章标准门禁（强制）
-每章固定顺序：
-1. `/更新记忆`
-2. `/检查一致性`
-3. `/风格校准`
-4. `/校稿`
-5. `/门禁检查`
+## 0. Standard Gate Check Per Chapter (Mandatory)
 
-门禁失败规则：`/门禁检查` 未通过，章节状态必须保持草稿。
+Fixed order per chapter:
+1. `/update-memory`
+2. `/check-consistency`
+3. `/style-calibration`
+4. `/copyedit`
+5. `/gate-check`
 
-## 0.1 新手最简命令（推荐）
-1. `/一键开书`
-2. `/继续写`
-3. `/修复本章`
+Gate failure rule: If `/gate-check` is not passed, the chapter status must remain draft.
 
-`/继续写` 自动执行完整章节流程，无需手动拆分命令。
+## 0.1 Simplest Commands for Beginners (Recommended)
+1. `/one-click-novel-init`
+2. `/continue-write`
+3. `/repair-chapter`
 
-## 1. 核心创作命令
-`/一键开书`
-- 输入：题材、剧情种子、主角目标、核心冲突、预期篇幅。
-- 输出：自动完成开书建模 + 建库 + 首章写作准备。
-- 执行：`python3 scripts/novel_flow_executor.py one-click --project-root <项目目录> --title <书名> --genre <题材> --idea <剧情种子>`
+`/continue-write` automatically executes the complete chapter flow; no need to manually split commands.
 
-`/继续写`
-- 输入：本章目标、冲突、角色（均可选）。
-- 输出：自动完成“检索→写作→门禁→索引更新”。
-- 自动流程：`/剧情检索`（条件触发）→ `/写作` → `/更新记忆` → `/检查一致性` → `/风格校准` → `/校稿` → `/门禁检查` → `/更新剧情索引`。
-- 执行：`python3 scripts/novel_flow_executor.py continue-write --project-root <项目目录> --query "<新剧情>"`
-- 进阶执行：`python3 scripts/novel_flow_executor.py continue-write --project-root <项目目录> --query "<新剧情>" --candidate-k 12 --max-auto-retry-rounds 2 --rollback-on-failure --idempotent-cache`
-- 说明：默认启用执行锁、幂等缓存、写前快照、失败回滚；若章节已成稿会自动触发门禁与最小修复联动。
+## 1. Core Creation Commands
+`/one-click-novel-init`
+- Input: genre, plot seed, protagonist goal, core conflict, expected length.
+- Output: Automatically completes novel initialization + database creation + first chapter writing prep.
+- Execute: `python3 scripts/novel_flow_executor.py one-click --project-root <project directory> --title <book title> --genre <genre> --idea <plot seed>`
 
-`/修复本章`
-- 输入：项目目录 + 章节文件。
-- 执行：`python3 scripts/gate_repair_plan.py --project-root <项目目录> --chapter-file <章节文件>`
-- 输出：`repair_plan.md`（最短修复路径）。
+`/continue-write`
+- Input: chapter goal, conflict, characters (all optional).
+- Output: Automatically completes "retrieval → writing → gate check → index update".
+- Automatic flow: `/plot-retrieval` (conditionally triggered) → `/writing` → `/update-memory` → `/check-consistency` → `/style-calibration` → `/copyedit` → `/gate-check` → `/update-plot-index`.
+- Execute: `python3 scripts/novel_flow_executor.py continue-write --project-root <project directory> --query "<new plot>"`
+- Advanced execution: `python3 scripts/novel_flow_executor.py continue-write --project-root <project directory> --query "<new plot>" --candidate-k 12 --max-auto-retry-rounds 2 --rollback-on-failure --idempotent-cache`
+- Note: Execution lock, idempotent cache, pre-write snapshot, and failure rollback are enabled by default; if the chapter is already drafted, it will automatically trigger gate check and minimal repair linkage.
 
-`/新手模式`
-- 输入：`开启` 或 `关闭`。
-- 输出：切换简化交互层。
+`/repair-chapter`
+- Input: project root + chapter file.
+- Execute: `python3 scripts/gate_repair_plan.py --project-root <project directory> --chapter-file <chapter file>`
+- Output: `repair_plan.md` (shortest repair path).
 
-`/写全篇`
-- 输入：题材、剧情种子、主角目标、核心冲突、预期篇幅。
-- 输出：`idea_seed.md`、`million_word_blueprint.md`、`novel_plan.md`、`novel_state.md`。
+`/beginner-mode`
+- Input: `on` or `off`.
+- Output: Toggle simplified interaction layer.
 
-`/剧情检索`
-- 输入：当前准备写的新剧情描述（冲突、人物、事件目标）。
-- 执行：`python3 scripts/plot_rag_retriever.py query --project-root <项目目录> --query "<新剧情>" --top-k 4 --candidate-k 12 --auto-build`
-- 默认行为：条件触发（轻场景自动跳过）、片段级召回、查询缓存。
-- 常用参数：`--force`（强制检索）、`--no-cache`（禁用缓存）、`--no-conditional`（每次都检索）。
-- 输出：`00_memory/retrieval/next_plot_context.md`（建议回读章节 + 关键片段 + 角色关系片段）。
-- 补充产物：`00_memory/retrieval/chapter_meta/*.meta.json`（章节 sidecar 元数据）。
+`/write-full-book`
+- Input: genre, plot seed, protagonist goal, core conflict, expected length.
+- Output: `idea_seed.md`, `million_word_blueprint.md`, `novel_plan.md`, `novel_state.md`.
 
-`/写作`
-- 输入：章节目标、冲突、人物、上章结尾。
-- 输出：单章草稿（必须保存为 `03_manuscript/*.md`，然后进入门禁流程）。
+`/plot-retrieval`
+- Input: Description of new plot you are about to write (conflict, characters, event goals).
+- Execute: `python3 scripts/plot_rag_retriever.py query --project-root <project directory> --query "<new plot>" --top-k 4 --candidate-k 12 --auto-build`
+- Default behavior: Conditional trigger (light scenarios auto-skip), fragment-level recall, query cache.
+- Common parameters: `--force` (force retrieval), `--no-cache` (disable cache), `--no-conditional` (retrieve every time).
+- Output: `00_memory/retrieval/next_plot_context.md` (suggested chapters to reread + key fragments + character relationship fragments).
+- Supplementary artifact: `00_memory/retrieval/chapter_meta/*.meta.json` (chapter sidecar metadata).
 
-`/续写`
-- 输入：项目目录。
-- 输出：状态恢复 + 新章节草稿（进入门禁流程）。
+`/writing`
+- Input: chapter goal, conflict, characters, previous chapter ending.
+- Output: Single chapter draft (must be saved as `03_manuscript/*.md`, then enter gate check flow).
 
-`/批量写作`
-- 输入：目标章数、每章任务点。
-- 输出：多章草稿（每章都要跑门禁流程）。
+`/resume-write`
+- Input: project root.
+- Output: State recovery + new chapter draft (enter gate check flow).
 
-`/修改章节`
-- 输入：目标章节、修改要求。
-- 输出：修订稿 + 影响报告 + 记忆级联更新。
+`/batch-write`
+- Input: target number of chapters, task points per chapter.
+- Output: Multiple chapter drafts (each chapter must go through gate check flow).
 
-## 2. 剧情索引与检索命令
-`/更新剧情索引`
-- 输入：项目目录。
-- 执行：`python3 scripts/plot_rag_retriever.py build --project-root <项目目录>`（默认增量构建，仅重算变更章节）
-- 全量重建：`python3 scripts/plot_rag_retriever.py build --project-root <项目目录> --full-rebuild`
-- 输出：`00_memory/retrieval/story_index.json`、`00_memory/retrieval/entity_chapter_map.json`。
+`/revise-chapter`
+- Input: target chapter, modification requirements.
+- Output: Revised draft + impact report + memory cascade update.
 
-`/剧情检索`
-- 输入：新剧情描述。
-- 输出：`next_plot_context.md`，用于写前最小上下文读取。
+## 2. Plot Index & Retrieval Commands
+`/update-plot-index`
+- Input: project root.
+- Execute: `python3 scripts/plot_rag_retriever.py build --project-root <project directory>` (incremental build by default, only recalculates changed chapters)
+- Full rebuild: `python3 scripts/plot_rag_retriever.py build --project-root <project directory> --full-rebuild`
+- Output: `00_memory/retrieval/story_index.json`, `00_memory/retrieval/entity_chapter_map.json`.
 
-## 3. 分析与建库命令
-`/拆书`
-- 输入：目标作品文本或信息。
-- 输出：结构拆解、爽点机制、人设与开篇策略。
+`/plot-retrieval`
+- Input: New plot description.
+- Output: `next_plot_context.md`, for minimal context reading before writing.
 
-`/仿写`
-- 输入：样章文本（建议 >=2）。
-- 输出：写法模板 + 风格特征摘要。
+## 3. Analysis & Knowledge Base Commands
+`/deconstruct-book`
+- Input: Target work text or information.
+- Output: Structural breakdown, payoff mechanics, character design, and opening strategy.
 
-`/建库`
-- 输入：项目名、题材、核心设定。
-- 输出：记忆系统与知识库初始化（章节目录为 `03_manuscript/`，知识库目录为 `02_knowledge_base/`）。
+`/imitate`
+- Input: Sample chapter text (recommended >= 2).
+- Output: Writing template + style feature summary.
 
-## 4. 质量命令（每章必经）
-`/更新记忆`
-- 输入：本章正文。
-- 输出：`novel_state.md`、追踪器、摘要更新。
-- 产物：`04_editing/gate_artifacts/<chapter_id>/memory_update.md`
+`/build-knowledge-base`
+- Input: Project name, genre, core worldbuilding.
+- Output: Memory system and knowledge base initialization (chapter directory: `03_manuscript/`, knowledge base directory: `02_knowledge_base/`).
 
-`/检查一致性`
-- 输入：本章正文 + 当前记忆文件。
-- 输出：一致性风险清单 + 修正建议。
-- 产物：`04_editing/gate_artifacts/<chapter_id>/consistency_report.md`
+## 4. Quality Commands (Mandatory Per Chapter)
+`/update-memory`
+- Input: Current chapter text.
+- Output: `novel_state.md`, tracker, summary update.
+- Artifact: `04_editing/gate_artifacts/<chapter_id>/memory_update.md`
 
-`/风格校准`
-- 输入：本章正文 + `style_anchor.md`。
-- 输出：风格偏移报告 + 修正建议。
-- 产物：`04_editing/gate_artifacts/<chapter_id>/style_calibration.md`
+`/check-consistency`
+- Input: Current chapter text + current memory file.
+- Output: Consistency risk checklist + correction suggestions.
+- Artifact: `04_editing/gate_artifacts/<chapter_id>/consistency_report.md`
 
-`/校稿`
-- 输入：校准后的章节稿。
-- 输出：去AI味发布稿。
-- 产物：
-- `04_editing/gate_artifacts/<chapter_id>/copyedit_report.md`
-- `04_editing/gate_artifacts/<chapter_id>/publish_ready.md`
+`/style-calibration`
+- Input: Current chapter text + `style_anchor.md`.
+- Output: Style deviation report + correction suggestions.
+- Artifact: `04_editing/gate_artifacts/<chapter_id>/style_calibration.md`
 
-`/门禁检查`
-- 输入：项目目录 + 章节文件。
-- 执行：`python3 scripts/chapter_gate_check.py --project-root <项目目录> --chapter-file <章节文件>`
-- 输出：通过/失败结果（同时校验章节必须在 `03_manuscript/` 且为 `.md`，并检查知识库目录没有混入章节文件）。
-- 新增硬校验：`quality_report.md` 必须存在且结论为 `通过：True`。
-- 产物：`04_editing/gate_artifacts/<chapter_id>/gate_result.json`
+`/copyedit`
+- Input: Calibrated chapter draft.
+- Output: AI-texture-free publishable draft.
+- Artifacts:
+  - `04_editing/gate_artifacts/<chapter_id>/copyedit_report.md`
+  - `04_editing/gate_artifacts/<chapter_id>/publish_ready.md`
 
-## 8. 改纲与维护命令
+`/gate-check`
+- Input: project root + chapter file.
+- Execute: `python3 scripts/chapter_gate_check.py --project-root <project directory> --chapter-file <chapter file>`
+- Output: Pass/fail result (also validates that the chapter must be in `03_manuscript/` and be `.md`, and checks that the knowledge base directory does not contain chapter files).
+- New hard validation: `quality_report.md` must exist and its conclusion must be `passed: True`.
+- Artifact: `04_editing/gate_artifacts/<chapter_id>/gate_result.json`
 
-`/改纲续写`
-- **适用场景**：在故事进行中发现主线走向需调整，修改 `novel_plan.md` 后必须执行此命令重新对齐三层索引（大纲锚点 / 知识图谱 / RAG），然后才能继续写作。
-- **执行顺序**：手动编辑 `novel_plan.md` → 执行 `/改纲续写` → 查阅影响报告 → `/继续写`
-- **执行**：
+## 5. Style System Commands
+`/style-extract`
+- Input: Style name, project root, sample files.
+- Output: Project style profile + global style library index.
+
+`/genre-select-style`
+- Input: Genre, target reader, pacing preference.
+- Output: Genre baseline style + project-specific adjustments.
+
+`/style-transfer`
+- Input: Chapter draft + target style profile.
+- Output: Transferred draft + deviation notes.
+
+`/style-library-retrieval`
+- Input: Genre and target effect.
+- Output: Reusable style candidates and priority.
+
+## 6. Installation & Mode Commands
+`/install-to-multi-tools`
+- Input: Target tool (codex/claude-code/opencode/gemini-cli/antigravity).
+- Execute: `bash scripts/install-portable-skill.sh --tool <tool> --force`
+- Output: Installation directory and entry files.
+
+`/beginner-mode`
+- Input: `on` or `off`.
+- Output: Toggle result and recommended next command.
+
+## 7. Outline Revision & Maintenance Commands
+`/revise-outline`
+- **Applicable Scenario**: When during writing you find the main plot direction needs adjustment, you must execute this command after modifying `novel_plan.md` to realign the three-layer indexes (outline anchors / knowledge graph / RAG), before you can resume writing.
+- **Execution Order**: Manually edit `novel_plan.md` → execute `/revise-outline` → review impact report → `/continue-write`
+- **Execute**:
   ```bash
   python3 scripts/novel_flow_executor.py revise-outline \
-    --project-root <项目目录> \
-    --from-chapter <起始章节号> \
-    [--change-description "<改纲说明>"] \
+    --project-root <project directory> \
+    --from-chapter <starting chapter number> \
+    [--change-description "<outline revision description>"] \
     [--emit-json]
   ```
-- **参数**：
+- **Parameters**:
 
-  | 参数 | 类型 | 必选 | 说明 |
-  |------|------|------|------|
-  | `--project-root` | 路径 | 是 | 小说项目根目录，须包含 `00_memory/novel_plan.md` |
-  | `--from-chapter` | 整数（≥1） | 是 | 改纲影响的起始章节号（含该章节） |
-  | `--change-description` | 字符串 | 否 | 本次改纲的简要说明，写入影响报告 |
-  | `--emit-json` | 开关 | 否 | 将 JSON 结果追加到 stdout（供脚本解析） |
+  | Parameter | Type | Required | Description |
+  |-----------|------|----------|-------------|
+  | `--project-root` | Path | Yes | Novel project root, must contain `00_memory/novel_plan.md` |
+  | `--from-chapter` | Integer (≥1) | Yes | Starting chapter number affected by the revision (inclusive) |
+  | `--change-description` | String | No | Brief description of this outline revision, written to the impact report |
+  | `--emit-json` | Switch | No | Append JSON result to stdout (for script parsing) |
 
-- **三步级联流程**：
-  1. **锚点重算**（Step 1，必须成功）：备份当前 `outline_anchors.json` 至 `.flow/backup_anchors_<时间戳>.json`，再从改纲后的 `novel_plan.md` 重新计算大纲锚点
-  2. **图谱级联标记**（Step 2，依赖 Step 1 成功）：将 `last_updated >= from_chapter` 的知识图谱节点标记为 `cascade_pending=True`，受影响的边（`since_chapter >= from_chapter`）同步标记；生成结构化级联影响报告
-  3. **RAG 索引重建**（Step 3，依赖 Step 1 成功）：调用 `plot_rag_retriever.py build` 全量重建检索索引
+- **Three-Step Cascade Flow**:
+  1. **Anchor Recalculation** (Step 1, must succeed): Back up current `outline_anchors.json` to `.flow/backup_anchors_<timestamp>.json`, then recalculate outline anchors from the revised `novel_plan.md`
+  2. **Graph Cascade Marking** (Step 2, depends on Step 1 success): Mark knowledge graph nodes with `last_updated >= from_chapter` as `cascade_pending=True`; affected edges (`since_chapter >= from_chapter`) are also marked; generate structured cascade impact report
+  3. **RAG Index Rebuild** (Step 3, depends on Step 1 success): Call `plot_rag_retriever.py build` for full rebuild of retrieval index
 
-- **成功判定**：`ok = anchors_recalculated AND report_written`（图谱标记失败或 RAG 构建失败为软失败，不影响 `ok` 字段）
-- **产物**：
-  - `.flow/backup_anchors_<时间戳>.json` — 改纲前的锚点备份（可用于回滚）
-  - `00_memory/outline_anchors.json` — 重算后的新锚点文件
-  - `00_memory/revise_outline_report.md` — 本次改纲影响范围报告
-- **图谱级联子命令**（仅脚本层，`/改纲续写` 内部调用）：
+- **Success Criteria**: `ok = anchors_recalculated AND report_written` (knowledge graph marking failure or RAG build failure is a soft failure, does not affect the `ok` field)
+- **Artifacts**:
+  - `.flow/backup_anchors_<timestamp>.json` — Pre-revision anchor backup (can be used for rollback)
+  - `00_memory/outline_anchors.json` — Recalculated new anchor file
+  - `00_memory/revise_outline_report.md` — Impact scope report of this outline revision
+- **Graph Cascade Sub-commands** (script layer only, called internally by `/revise-outline`):
   ```bash
   python3 scripts/story_graph_updater.py cascade \
-    --project-root <项目目录> \
+    --project-root <project directory> \
     --from-chapter <N> \
-    [--change-description "<说明>"]
+    [--change-description "<description>"]
   ```
 
-## 7. 评测基线
-`/评测基线`（脚本入口）
-- 输入：项目目录、评测轮数。
-- 执行：`python3 scripts/benchmark_novel_flow.py --project-root <项目目录> --rounds 5`
-- 输出：`00_memory/retrieval/eval_baseline.json`（包含 ok_rate、gate_pass_rate、retry_rate、avg_runtime_ms、avg_retrieval_context_chars 等指标）。
-
-## 5. 风格系统命令
-`/风格提取`
-- 输入：风格名、项目目录、样章文件。
-- 输出：项目风格档案 + 全局风格库索引。
-
-`/题材选风格`
-- 输入：题材、目标读者、节奏偏好。
-- 输出：题材基线风格 + 项目修正项。
-
-`/风格迁移`
-- 输入：章节草稿 + 目标风格档案。
-- 输出：迁移稿 + 偏移说明。
-
-`/风格库检索`
-- 输入：题材与目标效果。
-- 输出：可复用风格候选与优先级。
-
-## 6. 安装与模式命令
-`/安装到多工具`
-- 输入：目标工具（codex/claude-code/opencode/gemini-cli/antigravity）。
-- 执行：`bash scripts/install-portable-skill.sh --tool <tool> --force`
-- 输出：安装目录与入口文件。
-
-`/新手模式`
-- 输入：`开启` 或 `关闭`。
-- 输出：切换结果与下一步推荐命令。
+## 8. Evaluation Baseline
+`/evaluation-baseline` (script entry point)
+- Input: Project root, evaluation rounds.
+- Execute: `python3 scripts/benchmark_novel_flow.py --project-root <project directory> --rounds 5`
+- Output: `00_memory/retrieval/eval_baseline.json` (contains metrics such as ok_rate, gate_pass_rate, retry_rate, avg_runtime_ms, avg_retrieval_context_chars).

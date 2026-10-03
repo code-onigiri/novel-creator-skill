@@ -1,19 +1,19 @@
-# 故事时间线
+# Story Timeline
 
-> 按时间顺序记录所有事件。每章写完后追加新事件。
+> Record all events in chronological order. Append new events after each chapter is written.
 
-## 时间体系
-以章节推进为主时间轴，可按天/周补充细化。
-<!-- 例如：以天为单位计时，故事开始于某年某月 -->
+## Time System
+Use chapter progression as the main timeline axis; supplement with day/week granularity when needed.
+<!-- e.g., Count by days, story begins in a certain year and month -->
 
-## 前史（故事开始之前的重要事件）
-| 故事时间 | 事件 | 影响 | 关联章节 |
+## Prequel History (Important Events Before the Story Begins)
+| Story Time | Event | Impact | Related Chapter |
 |----------|------|------|---------|
-<!-- 世界观中的历史事件 -->
+<!-- Historical events in the worldbuilding -->
 
-## 第一卷：起势卷
-| 故事时间 | 章节 | 事件 | 涉及人物 | 影响 |
+## Volume 1: Rising Action
+| Story Time | Chapter | Event | Characters Involved | Impact |
 |----------|------|------|---------|------|
-<!-- 每章写完后在此追加 -->
+<!-- Append here after each chapter is written -->
 
-<!-- 后续卷数在写到时创建 -->
+<!-- Create subsequent volumes as they are written -->

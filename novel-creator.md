@@ -1,5 +1,5 @@
-# Novel Claude AI - 小说创作大师
+# Novel Claude AI - Novel Creation Master
 
-> 本文件为旧版入口兼容说明。完整流程、命令说明与脚本用法以 **`SKILL.md`** 为准。
+> This file is for backward compatibility with the old entry point. For the complete process, command descriptions, and script usage, refer to **`SKILL.md`**.
 
-新手请从 `SKILL.md` 第 2 节「新手三命令」开始。
+Beginners should start from Section 2 "Beginner Three Commands" in `SKILL.md`.

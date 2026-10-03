@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""大纲锚点管理器。
+"""Outline Anchor Manager.
 
-子命令：
-1. init        — 根据 novel_plan.md 初始化锚点
-2. check       — 检查章节推进范围并输出约束 prompt
-3. advance     — 推进到下一章/指定章
-4. recalculate — 改纲后重算所有锚点
+Subcommands:
+1. init        — Initialize anchors based on novel_plan.md
+2. check       — Check chapter advancement scope and output constraint prompt
+3. advance     — Advance to next chapter / specified chapter
+4. recalculate — Recalculate all anchors after outline changes
 """
 
 import argparse
@@ -23,7 +23,7 @@ if str(SCRIPT_DIR) not in sys.path:
 
 from common import ensure_dir, load_json, read_text, save_json
 
-# ── 中文数字 → 阿拉伯数字 ────────────────────────────────────────
+# ── Chinese Numerals → Arabic Numerals ────────────────────────────────────────
 
 _CN_NUM = {"零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
            "六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
@@ -32,7 +32,7 @@ _CN_NUM = {"零": 0, "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
 
 
 def _cn_to_int(s: str) -> int:
-    """尽力将中文数字转为 int，失败返回 0。"""
+    """Best-effort conversion of Chinese numerals to int; returns 0 on failure."""
     if s in _CN_NUM:
         return _CN_NUM[s]
     try:
@@ -41,7 +41,7 @@ def _cn_to_int(s: str) -> int:
         return 0
 
 
-# ── 配置 ──────────────────────────────────────────────────────────
+# ── Configuration ──────────────────────────────────────────────────
 
 @dataclass
 class AnchorConfig:
@@ -51,10 +51,10 @@ class AnchorConfig:
     default_total_volumes: int = 10
     default_indent: int = 2
     default_forbidden_reveals: List[str] = field(default_factory=lambda: ["终极BOSS身份"])
-    default_mandatory_tension: str = "至少保留一个未解决冲突进入下一章"
+    default_mandatory_tension: str = "At least one unresolved conflict must carry over to the next chapter"
 
 
-# ── 内部工具 ──────────────────────────────────────────────────────
+# ── Internal Utilities ──────────────────────────────────────
 
 def _anchor_path(root: Path, cfg: AnchorConfig) -> Path:
     return root / cfg.anchor_rel_path
@@ -64,10 +64,10 @@ def _plan_path(root: Path, cfg: AnchorConfig) -> Path:
     return root / cfg.plan_rel_path
 
 
-# 支持多种常见大纲格式：
-# "第一卷：起势 - 核心冲突 (第1-120章)"
-# "第1卷 起势（第1章-第120章）"
-# "## 卷一 起势  第1-120章"
+# Support multiple common outline formats:
+# "Volume N: Starting Momentum - Core Conflict (Chapters 1-120)"
+# "Volume N Starting Momentum (Chapter 1-Chapter 120)"
+# "## Volume N Starting Momentum  Chapters 1-120"
 _VOL_RE = re.compile(
     r"(?:第|卷)\s*([一二三四五六七八九十\d]+)\s*卷?[：:\s]*"
     r"([^\n\-（(]+?)\s*(?:-|—|：|:)\s*([^\n（(]+?)\s*"
@@ -99,25 +99,25 @@ def _parse_volumes(plan_text: str, cfg: AnchorConfig) -> List[Dict[str, Any]]:
     if vols:
         return vols
 
-    # 回退：尝试简单格式
+    # Fallback: try simple format
     for i, m in enumerate(_VOL_SIMPLE_RE.finditer(plan_text), start=1):
         vols.append({
             "volume": _cn_to_int(m.group(1)) or i,
             "title": m.group(2).strip()[:30],
             "chapter_range": [0, 0],
-            "core_conflict": "待补充",
+            "core_conflict": "To be filled in",
             "must_not_reveal": [], "must_achieve": [],
             "foreshadows_to_plant": [],
         })
 
     if vols:
-        # 均分章节
+        # Evenly distribute chapters
         per = max(1, cfg.default_total_chapters // len(vols))
         for i, v in enumerate(vols):
             v["chapter_range"] = [i * per + 1, (i + 1) * per if i < len(vols) - 1 else cfg.default_total_chapters]
         return vols
 
-    # 最终回退：均匀分卷
+    # Final fallback: evenly distribute volumes
     per = max(1, cfg.default_total_chapters // cfg.default_total_volumes)
     for i in range(1, cfg.default_total_volumes + 1):
         s = (i - 1) * per + 1
@@ -125,7 +125,7 @@ def _parse_volumes(plan_text: str, cfg: AnchorConfig) -> List[Dict[str, Any]]:
         vols.append({
             "volume": i, "title": f"第{i}卷",
             "chapter_range": [s, e],
-            "core_conflict": "待补充",
+            "core_conflict": "To be filled in",
             "must_not_reveal": [], "must_achieve": [],
             "foreshadows_to_plant": [],
         })
@@ -152,9 +152,9 @@ def _build_current_node(anchors: Dict[str, Any], chapter: int) -> Dict[str, Any]
     return {
         "volume": int(vol.get("volume", 1)),
         "chapter": chapter,
-        "allowed_plot_range": f"当前卷允许推进区间：第{start}-{end}章的卷内冲突，不得提前收束终局主线",
+        "allowed_plot_range": f"Current volume advancement range: conflicts within chapters {start}-{end}, must not prematurely conclude the main plot",
         "forbidden_reveals": sorted(set(forbidden)),
-        "mandatory_tension": anchors.get("mandatory_tension") or "至少保留一个未解决冲突进入下一章",
+        "mandatory_tension": anchors.get("mandatory_tension") or "At least one unresolved conflict must carry over to the next chapter",
     }
 
 
@@ -166,7 +166,7 @@ def _load_anchors(path: Path) -> Dict[str, Any]:
     })
 
 
-# ── 子命令 ────────────────────────────────────────────────────────
+# ── Subcommands ────────────────────────────────────────────────────────
 
 def cmd_init(args: argparse.Namespace, cfg: AnchorConfig) -> Dict[str, Any]:
     root = Path(args.project_root).expanduser().resolve()
@@ -218,11 +218,11 @@ def cmd_check(args: argparse.Namespace, cfg: AnchorConfig) -> Dict[str, Any]:
     current_node = _build_current_node(anchors, chapter)
 
     prompt = (
-        f"当前是第 {chapter} 章（共 {total} 章），进度 {_progress(chapter, total)}%。\n"
-        f"当前卷：{vol.get('title', '未命名卷')}（第{start}-{end}章）。\n"
-        f"本章推进范围：{current_node['allowed_plot_range']}。\n"
-        f"本章禁止揭露：{', '.join(current_node['forbidden_reveals']) or '无'}。\n"
-        f"本章必须保留：{current_node['mandatory_tension']}。"
+        f"Chapter {chapter} of {total} ({_progress(chapter, total)}%).\n"
+        f"Volume: {vol.get('title', 'Unnamed Volume')} (Chapters {start}-{end}).\n"
+        f"Advancement range: {current_node['allowed_plot_range']}.\n"
+        f"Forbidden reveals: {', '.join(current_node['forbidden_reveals']) or 'None'}.\n"
+        f"Must preserve: {current_node['mandatory_tension']}."
     )
 
     return {
@@ -241,7 +241,7 @@ def cmd_advance(args: argparse.Namespace, cfg: AnchorConfig) -> Dict[str, Any]:
     anchors = _load_anchors(path)
 
     if not anchors.get("volumes"):
-        return {"ok": False, "command": "advance", "error": "锚点未初始化，请先执行 init"}
+        return {"ok": False, "command": "advance", "error": "Anchors not initialized; run init first"}
 
     cur = int(anchors.get("current_chapter", 1))
     to_ch = int(args.to_chapter) if args.to_chapter is not None else (cur + 1)
@@ -299,23 +299,23 @@ def cmd_recalculate(args: argparse.Namespace, cfg: AnchorConfig) -> Dict[str, An
 # ── CLI ───────────────────────────────────────────────────────────
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="大纲锚点管理器")
+    p = argparse.ArgumentParser(description="Outline Anchor Manager")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    s = sub.add_parser("init", help="根据 novel_plan 初始化锚点")
+    s = sub.add_parser("init", help="Initialize anchors from novel_plan")
     s.add_argument("--project-root", required=True)
     s.add_argument("--current-chapter", type=int, default=1)
     s.add_argument("--total-chapters-target", type=int, default=0)
 
-    s = sub.add_parser("check", help="检查章节推进范围并输出约束 prompt")
+    s = sub.add_parser("check", help="Check chapter advancement scope and output constraint prompt")
     s.add_argument("--project-root", required=True)
     s.add_argument("--chapter", type=int, default=None)
 
-    s = sub.add_parser("advance", help="推进到下一章/指定章")
+    s = sub.add_parser("advance", help="Advance to next chapter / specified chapter")
     s.add_argument("--project-root", required=True)
     s.add_argument("--to-chapter", type=int, default=None)
 
-    s = sub.add_parser("recalculate", help="改纲后重算锚点")
+    s = sub.add_parser("recalculate", help="Recalculate anchors after outline changes")
     s.add_argument("--project-root", required=True)
 
     return p.parse_args()

@@ -1,24 +1,24 @@
-# 百万字路线图
+# Million-Word Roadmap
 
-## 总目标
-- 目标总字数：
-- 预估总章节：
-- 预估总卷数：
+## Overall Goal
+- Target Total Word Count:
+- Estimated Total Chapters:
+- Estimated Total Volumes:
 
-## 卷级规划
-| 卷 | 目标章数 | 核心冲突 | 卷末状态 | 关键伏笔 |
+## Volume-Level Planning
+| Volume | Target Chapters | Core Conflict | End-of-Volume State | Key Foreshadowing |
 |---|---:|---|---|---|
-| 第一卷 |  |  |  |  |
-| 第二卷 |  |  |  |  |
-| 第三卷 |  |  |  |  |
+| Volume 1 |  |  |  |  |
+| Volume 2 |  |  |  |  |
+| Volume 3 |  |  |  |  |
 
-## 前200章里程碑
-- 1-20章：
-- 21-50章：
-- 51-100章：
-- 101-150章：
-- 151-200章：
+## First 200 Chapters Milestones
+- Chapters 1-20:
+- Chapters 21-50:
+- Chapters 51-100:
+- Chapters 101-150:
+- Chapters 151-200:
 
-## 10章冲刺节奏
-- 冲刺目标模板：
-- 冲刺复盘模板：
+## 10-Chapter Sprint Rhythm
+- Sprint Goal Template:
+- Sprint Retrospective Template:

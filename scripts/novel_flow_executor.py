@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""小说流程增强执行器。
+"""Fiction Flow Enhancement Actuator.
 
-覆盖目标：
-1. /继续写 自动把占位章转成正文并进入后续流程
-2. 增加章节质量下限检查
-3. 门禁失败后自动最小修复重试
-"""
+Override Target:
+1./Continue writing Automatically turn the placeholder into the body and proceed to the follow-up process
+2. Increase Section Quality Lower Limit Inspection
+3. Automatic minimum repair retry after access control failure"""
 
 import argparse
 import datetime as dt
@@ -34,24 +33,24 @@ SKILL_ROOT = SCRIPT_DIR.parent
 TEMPLATE_DIR = SKILL_ROOT / "templates"
 CHAPTER_RE = re.compile(r"^第\d+章.*\.md$")
 AI_PHRASE_BLACKLIST = [
-    # 比喻/感知套话
+    #Metaphor/Perceptual Narrative
     "不禁", "仿佛", "宛如", "宛若", "恍若", "仿若", "好似",
-    # 视觉过渡套话
-    "映入眼帘", "涌入眼帘", "跃入眼帘",
-    # 内心独白套话
-    "心中暗道", "心中暗想", "暗自思忖", "心中一动", "心中一凛",
-    # 对话标签套话
+    #Visual Transition Case
+    "Reflected in the eyes "," pouring into the eyes", "跃入眼帘",
+    #Inner Monologues
+    "secretly said in the heart "," secretly thought in the heart", "I secretly thought to myself ","", "心中一凛",
+    #Conversation Tag Thread
     "沉声道", "淡淡地说", "缓缓说道", "淡然道",
-    # 反应/动作套话
-    "脸色一变", "神情一凛", "眉头微皱", "身形一顿", "脚步一顿",
-    # 外貌描写套话
+    #Reaction/Action Threading
+    "Her complexion changed. "," Her expression was sharp.", "Frown slightly "," body shape", "脚步一顿",
+    #Appearance description slogan
     "嘴角微扬", "勾起一抹弧度", "目光如炬",
-    # 过渡套话
+    #Transition Sockets
     "只见", "此时此刻",
-    # 主体性剥夺词
+    #Subjectivity Deprivation Words
     "不由自主", "不由得", "情不自禁",
-    # 意义膨胀
-    "叹为观止", "意义深远", "前所未有", "可谓", "毋庸置疑",
+    #Meaning Dilatation
+    "Stunning "," profound", "前所未有", "可谓", "毋庸置疑",
 ]
 STUB_MARKER = "<!-- NOVEL_FLOW_STUB -->"
 BEAT_SHEET_STUB_MARKER = "<!-- BEAT_SHEET_STUB -->"
@@ -63,16 +62,16 @@ FLOW_CACHE_FILE = "continue_write_cache.json"
 FLOW_SNAPSHOT_DIR = "snapshots"
 FLOW_CACHE_MAX_ENTRIES = 200
 
-# 节奏模式配置 — 映射到最低章节字数与 beat 扩写深度
+#Rhythm Mode Configuration — Mapped to Minimum Chapter Words and Beat Expansion Depth
 PACING_MODE_PROFILES: Dict[str, Any] = {
-    # fast/standard 不改变现有默认字数门槛，仅靠 Beat 扩写约束改善质量
-    # immersive 显著提升字数要求，适合需要强代入感的正剧/慢热风格
+    #fast/standard does not change the existing default word count threshold, only rely on Beat extension constraints to improve quality
+    #immersive significantly improves word count requirements, suitable for orthodox/slow-heat styles that require a strong sense of substitution
     "fast":      {"min_chars": 2500, "beat_pacing_depth": "fast",      "max_skip_density": 0.40},
     "standard":  {"min_chars": 2500, "beat_pacing_depth": "standard",  "max_skip_density": 0.30},
     "immersive": {"min_chars": 4500, "beat_pacing_depth": "immersive", "max_skip_density": 0.15},
 }
 
-# 概括跳过词正则（与 chapter_synthesizer.py 保持同步）
+#General Skip Word Regularity (Sync with chapter_synthesizer.py)
 _FLOW_PACING_SKIP_PATTERNS = [
     r"(?:此后|随后|转眼|一晃|没过多久|几天后|数日后|几个月后|数月后|又过了)",
     r"(?:经过一番|经过数轮|花了[一二三四五六七八九十百\d两]+[天日月年]|苦修[一二三四五六七八九十百\d两]*[天日月年]?)",
@@ -85,7 +84,7 @@ def _resolve_pacing_mode(value: Optional[str]) -> str:
 
 
 def _infer_pacing_tier(event_types: List[str]) -> str:
-    """从事件类型列表推断节奏档位，与 pacing_tracker.infer_tier_from_event_types 保持一致。"""
+    """The event type list infers the rhythmic gear, which is consistent with pacing_tracker.infer_tier_from_event_types."""
     event_set = {str(t) for t in event_types}
     fast_types = {"conflict_thrill", "tension_escalation"}
     slow_types = {"bond_deepening", "world_painting"}
@@ -107,7 +106,7 @@ _VALID_EVENT_TYPES: set = {
 
 
 def _extract_event_types_from_constraints(constraints: object) -> List[str]:
-    """从 writing_constraints 中提取已过滤的有效事件类型列表。"""
+    """Extracts a list of filtered valid event types from writing_constraints."""
     if not isinstance(constraints, dict):
         return []
     event_rec = constraints.get("event_recommendation")
@@ -117,14 +116,14 @@ def _extract_event_types_from_constraints(constraints: object) -> List[str]:
     return [str(t) for t in rec_types if str(t) in _VALID_EVENT_TYPES]
 
 
-# 环境变量：标记当前是否在 Claude Code / Codex 等 CLI 工具中运行
-# 设置此变量后，系统将使用 MCP Codex 工具进行写作，无需外部 API Key
+#Environment variables: Mark if currently running in CLI tools such as Claude Code/Codex
+#After setting this variable, the system will use the MCP Codex tool for writing without the need for an external API Key
 _CLAUDE_CODE_MODE = os.environ.get("CLAUDE_CODE_MODE", "") or os.environ.get("CODEX_MODE", "")
 
 
 def _has_llm_config(args: argparse.Namespace, project_root: Path) -> bool:
     """Check if LLM configuration is available for writing."""
-    # 优先检查是否在 Claude Code / Codex 模式下
+    #Priority check for Claude Code/Codex mode
     if _CLAUDE_CODE_MODE:
         return True
     if getattr(args, "llm_provider", None) or getattr(args, "llm_api_key", None):
@@ -139,7 +138,7 @@ def _resolve_draft_provider(args: argparse.Namespace, project_root: Path) -> str
     raw = str(getattr(args, "draft_provider", "auto") or "auto")
     if raw in {"template", "llm"}:
         return raw
-    # Claude Code 模式下默认使用 llm（通过 MCP Codex）
+    #Use llm by default in Claude Code mode (via MCP Codex)
     if _CLAUDE_CODE_MODE:
         return "llm"
     return "llm" if _has_llm_config(args, project_root) else "template"
@@ -256,7 +255,7 @@ def _rewrite_chapter_with_llm(
     if not _has_llm_config(args, project_root):
         return False
 
-    # Claude Code 模式：使用 MCP Codex
+    #Claude Code Mode: Using MCP Codex
     if _CLAUDE_CODE_MODE:
         return _write_with_mcp_codex(project_root, chapter_path, prompt)
     try:
@@ -281,18 +280,17 @@ def _rewrite_chapter_with_llm(
 
 
 def _calc_skip_density(text: str, paragraphs: List[str]) -> float:
-    """计算概括跳过词密度（hits / paragraphs），用于检测剧情飞速推进。"""
+    """Calculate the general skip word density (hits/paragraphs), which is used to detect the rapid progression of the plot."""
     total = sum(len(re.findall(p, text)) for p in _FLOW_PACING_SKIP_PATTERNS)
     return round(total / max(len(paragraphs), 1), 3)
 
 
 def _validate_beat_text(text: str, word_target: int, max_skip_density: float) -> Dict[str, object]:
-    """校验单个 beat 正文是否达到最低展开要求。
+    """Verify that the single beat body meets the minimum expansion requirements.
 
-    通过条件：
-    1. 实际字数 >= word_target * 0.75（允许 25% 弹性）
-    2. 概括跳过密度 <= max_skip_density
-    """
+    Passing condition:
+    1. Actual word count > = word_target * 0.75 (25% elasticity allowed)
+    2. General Skip Density < = max_skip_density"""
     body = clean_for_stats(text)
     pure = re.sub(r"\s+", "", body)
     char_count = len(pure)
@@ -319,7 +317,7 @@ def _validate_beat_text(text: str, word_target: int, max_skip_density: float) ->
 
 
 def _build_retry_prompt(expand_prompt: str, retry: int, word_target: int) -> str:
-    """在重试时在原扩写提示词前追加强化要求。"""
+    """When retrying, follow the enhancement requirements before the original expansion prompt."""
     header = (
         f"\u3010\u5f3a\u5236\u91cd\u5199 - \u7b2c{retry}\u6b21\u3011\u4e0a\u4e00\u7248\u672c\u5b57\u6570\u4e0d\u8db3\u6216\u4f7f\u7528\u4e86\u6982\u62ec\u8df3\u8fc7\u53e5\uff0c\u672c\u6b21\u5fc5\u987b\u6ee1\u8db3\uff1a\n"
         f"1. \u5b57\u6570\u8fbe\u5230 {word_target} \u5b57\n"
@@ -330,23 +328,23 @@ def _build_retry_prompt(expand_prompt: str, retry: int, word_target: int) -> str
     return header + expand_prompt
 
 
-# ── 两阶段写作：场景分解 + 场景锚定提示词 ───────────────────────────────────
+#── Two Stage Writing: Scene Decomposition + Scene Anchor Prompt ───────────────────────────────────
 
 _SCENE_DECOMPOSE_SYSTEM = (
-    "你是专业小说结构编辑。接收一个 beat（场景片段）的写作任务描述，"
-    "将其拆解为 5\u20137 个连续的「微时刻」，以 JSON 格式输出。"
-    "每个微时刻必须包含：action（具体动作，非总结）、sensory（感官细节）、"
-    "emotion（情绪/内心状态）、obstacle（遇到的阻力或变化，可为空字符串）。"
-    "输出格式严格为：```json\n"
-    "{\"moments\": [{\"id\":1,\"action\":\"\",\"sensory\":\"\",\"emotion\":\"\",\"obstacle\":\"\"}]}\n"
-    "```\n"
-    "禁止使用「经过一番」「很快」「此后」等概括跳过词描述微时刻。"
+    "You are the structural editor of a professional novel.Receive a description of the writing task for a beat (scene clip), "
+    "Break it down into 5\ u20137 consecutive 'micro moments' to output in JSON format."
+    "Each micro-moment must contain: action (concrete action, not summary), sensory (sensory detail),"
+    "emotion (emotional/inner state), obstacle (resistance or change encountered, can be an empty string)."
+    "The output format is strictly: `` `json\ n"
+    "{\" moments\ ": [{\" id\ ": 1,\" action\ ":\"\ ",\" sensory\ ":\"\ ",\" emotion\ ":\"\ ",\" obstacle\ ":\"\ "}]}\ n"
+    "`` `\ n"
+    "It is forbidden to skip words such as" after a while "," soon ", and" afterwards "to describe micro moments."
 )
 
 _SCENE_DECOMPOSE_USER_TMPL = (
-    "请将以下 beat 写作任务拆解为 5\u20137 个微时刻（JSON 格式）：\n\n"
-    "{beat_summary}\n\n"
-    "字数目标：约 {word_target} 字。每个微时刻对应约 {chars_per_moment} 字的散文。"
+    "Please break down the following beat writing task into 5\ u20137 micro moments (JSON format):\ n\ n "
+    "{beat_summary}\ n\ n"
+    "Word target: approximately {word_target} words.Each micro-moment corresponds to about {chars_per_moment} words of prose."
 )
 
 
@@ -356,11 +354,10 @@ def _decompose_beat_scenes(
     overrides: Dict[str, object],
     project_root: Path,
 ) -> Optional[Dict[str, object]]:
-    """Phase 1：调用 LLM 将 beat 拆解为 5~7 个微时刻 JSON。
+    """Phase 1: Call LLM to disassemble beat into 5 ~ 7 micro moments JSON.
 
-    复用散文写作的 provider 配置，发出一次独立的场景分解请求。
-    成功返回 scene_map dict（含 moments 列表），失败返回 None（降级到原流程）。
-    """
+    Reuse the provider configuration of prose writing and issue an independent scene decomposition request.
+    Successfully returned scene_map dict (with moments list), failed to return None (demote to original flow)."""
     import json as _json
 
     beat_summary = expand_prompt[:600].strip()
@@ -383,7 +380,7 @@ def _decompose_beat_scenes(
             "writing_system_prompt_override": _SCENE_DECOMPOSE_SYSTEM,
             "max_tokens": 1200,
             "humanizer_enabled": False,
-            # 场景分解是中间任务，禁止触发记忆更新，避免污染项目记忆
+            #Scene decomposition is an intermediate task, it is forbidden to trigger memory updates to avoid contaminating project memories
             "auto_update_memory": False,
         }
 
@@ -400,7 +397,7 @@ def _decompose_beat_scenes(
         raw = tmp_file.read_text(encoding="utf-8") if tmp_file.exists() else ""
         tmp_file.unlink(missing_ok=True)
 
-        # 优先提取 ```json...``` 代码块，其次尝试裸 JSON
+        #Fetch `` `json...` `` code blocks first, then try naked JSON
         json_match = re.search(r"```json\s*(.*?)\s*```", raw, re.DOTALL)
         if json_match:
             scene_map: Dict[str, object] = _json.loads(json_match.group(1))
@@ -422,10 +419,9 @@ def _decompose_beat_scenes(
 
 
 def _build_scene_anchored_prompt(expand_prompt: str, scene_map: Dict[str, object]) -> str:
-    """Phase 2：将场景分解结果嵌入扩写提示词，锁定微时刻序列。
+    """Phase 2: Embed the scene decomposition results into the expansion prompt to lock the micro-moment sequence.
 
-    LLM 在 Phase 1 已承诺具体微时刻，Phase 2 只能按序展开，无法再概括跳过。
-    """
+    LLM has committed to specific micro moments in Phase 1, and Phase 2 can only be expanded in order and can no longer be skipped in general."""
     moments: List[Dict[str, object]] = scene_map.get("moments", [])  # type: ignore[assignment]
     lines: List[str] = []
     for m in moments:
@@ -479,7 +475,7 @@ def run_python(script: Path, args: List[str]) -> Tuple[int, str, str, Optional[D
 def _collect_writing_constraints(
     project_root: Path, chapter_path: Path, query: str
 ) -> Dict[str, object]:
-    """写前调用三个辅助脚本，汇总约束信息供后续注入 query。"""
+    """Call three auxiliary scripts before writing to summarize the constraint information for subsequent injection query."""
     chapter_no = chapter_no_from_name(chapter_path.name)
     constraints: Dict[str, object] = {"query": query, "chapter": chapter_no}
     if chapter_no <= 0:
@@ -505,7 +501,7 @@ def _collect_writing_constraints(
         "anti_resolution_guard": a_code == 0,
         "event_matrix_scheduler": e_code == 0,
     }
-    # 图谱上下文注入（已初始化图谱时生效）
+    #Atlas Context Injection (takes effect when the Atlas has been initialized)
     graph_file = project_root / "00_memory" / "story_graph.json"
     if graph_file.exists():
         g_code, g_out, _g_err, g_payload = run_python(
@@ -522,7 +518,7 @@ def _collect_writing_constraints(
 
 
 def _try_create_lock(lock_file: Path, payload: Dict[str, object]) -> bool:
-    """使用 O_CREAT|O_EXCL 原子创建锁文件，避免 TOCTOU 竞争窗口。"""
+    """Use the O_creat | O_excl atom to create the lock file and avoid the TOCTOU contention window."""
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
     try:
         fd = os.open(str(lock_file), flags, 0o600)
@@ -556,7 +552,7 @@ def acquire_lock(lock_file: Path, run_id: str, timeout_sec: int) -> Tuple[bool, 
     if ts and (now - ts) < max(1, timeout_sec):
         return False, current
 
-    # 回收过期锁前再次确认文件未被其他进程替换
+    #Reconfirm that the file has not been replaced by another process before reclaiming the expired lock
     try:
         latest_stat = lock_file.stat()
     except FileNotFoundError:
@@ -577,7 +573,7 @@ def acquire_lock(lock_file: Path, run_id: str, timeout_sec: int) -> Tuple[bool, 
 
 
 def validate_chapter_path(project_root: Path, chapter_file: str) -> Tuple[Path, Optional[str]]:
-    """解析并校验章节路径，确保路径在项目目录内，防止路径遍历攻击。"""
+    """Parse and verify chapter paths to ensure they are within the project directory and prevent path traversal attacks."""
     chapter_path = Path(chapter_file)
     if not chapter_path.is_absolute():
         chapter_path = project_root / chapter_path
@@ -617,7 +613,7 @@ def restore_snapshot(snapshot_path: Path, original_path: Path, current_path: Pat
 
 
 def make_request_id(args: argparse.Namespace, chapter_path: Path, query: str, chapter_hash_before: str, project_root: Path = None) -> str:
-    # 使用相对路径避免符号链接解析导致缓存键不一致
+    #Use relative paths to avoid inconsistent cache keys caused by symbolic link resolution
     try:
         if project_root and chapter_path.is_relative_to(project_root):
             path_key = str(chapter_path.relative_to(project_root))
@@ -845,21 +841,21 @@ def init_project_files(project_root: Path, args: argparse.Namespace, overwrite: 
     for rel, content in file_map.items():
         write_if_needed(project_root / rel, content, overwrite, changed, skipped)
 
-    first_chapter = project_root / "03_manuscript" / "第1章-开篇待写.md"
+    first_chapter = project_root / "03_manuscript" / "Chapter 1 - Opening To Be Written.md"
     first_stub = f"""# 第1章 开篇
 
 <!-- NOVEL_FLOW_STUB -->
 
-## 本章目标
+#CHAPTER OBJECTIVES
 - 建立主角目标：{args.protagonist_goal}
 - 落地核心冲突：{args.core_conflict}
 
-## 场景草图
+## Scene sketch
 - 起始地点：
 - 冲突触发点：
 - 章末钩子：
 
-## 正文
+#正文
 [待写]
 """
     write_if_needed(first_chapter, first_stub, overwrite, changed, skipped)
@@ -883,7 +879,7 @@ def chapter_is_draft_stub(path: Path) -> bool:
     if BEAT_SHEET_STUB_MARKER in txt:
         return True
     if DRAFT_PLACEHOLDER_LINE.search(txt):
-        # 仅在“占位文本很短”时才判定为草稿，避免正文引用“待写”被误判。
+        #Only when the "placeholder text is very short" is judged as a draft, to avoid the body reference "to be written" being misjudged.
         effective = re.sub(r"\s+", "", txt)
         if len(effective) <= MAX_STUB_EFFECTIVE_CHARS:
             return True
@@ -897,26 +893,26 @@ def clean_for_stats(text: str) -> str:
 
 
 def evaluate_quality(text: str, args: argparse.Namespace) -> Dict[str, object]:
-    """增强版质量评估 - 添加内容密度、AI词密度、段落多样性检查"""
+    """Enhanced Quality Assessment - Add Content Density, AI Word Density, Paragraph Diversity Check"""
     body = clean_for_stats(text)
     pure = re.sub(r"\s+", "", body)
     char_count = len(pure)
     
-    # 计算正文密度（排除标记、注释等）
+    #Calculate body density (exclude tags, comments, etc.)
     content_density = len(pure) / len(body) if body else 0
     
-    # 检查AI高频词密度
+    #Check AI High Frequency Word Density
     ai_phrase_count = sum(body.count(w) for w in AI_PHRASE_BLACKLIST)
     ai_density = ai_phrase_count / char_count if char_count else 0
     
-    # 段落多样性检查
+    #Paragraph Diversity Check
     paragraphs = [p.strip() for p in re.split(r"\n\s*\n", body) if p.strip()]
     para_lengths = [len(p) for p in paragraphs]
     para_variance = statistics.variance(para_lengths) if len(para_lengths) > 1 else 0
     paragraph_count = len(paragraphs)
 
-    # 段落重复度检查（P0-01 新增）
-    # 使用标准化段落文本进行重复检测
+    #Paragraph repeatability check (new on P0-01)
+    #Duplicate detection using standardized paragraph text
     normalized_paragraphs = [re.sub(r'\s+', ' ', p).strip() for p in paragraphs]
     para_counter: Dict[str, int] = {}
     for p in normalized_paragraphs:
@@ -926,28 +922,28 @@ def evaluate_quality(text: str, args: argparse.Namespace) -> Dict[str, object]:
     paragraph_unique_ratio = unique_paragraph_count / paragraph_count if paragraph_count > 0 else 1.0
     max_duplicate_paragraph_repeat = max(para_counter.values()) if para_counter else 1
     
-    # 对话占比：同时识别中文引号和英文引号
+    #Conversation ratio: Recognize both Chinese and English quotes
     dialogue_chars = sum(len(m.group(1)) for m in re.finditer(r"[“\"]([^”\"]*)[”\"]", body))
     dialogue_ratio = (dialogue_chars / char_count) if char_count else 0.0
     
-    # 句子数
+    #Sentences
     sentence_count = len(re.findall(r"[。！？!?]", body))
     
-    # AI词命中详情
+    #AI word hit details
     ai_phrase_hits = []
     for w in AI_PHRASE_BLACKLIST:
         c = body.count(w)
         if c > 0:
             ai_phrase_hits.append({"phrase": w, "count": c})
     
-    # 失败检查 - 增强版
+    #Failure Check - Enhanced
     failures: List[str] = []
     if char_count < args.min_chars:
         failures.append(f"char_count<{args.min_chars} (current: {char_count})")
     if paragraph_count < args.min_paragraphs:
         failures.append(f"paragraph_count<{args.min_paragraphs}")
     
-    # 新增检查项
+    #Add check
     min_density = getattr(args, 'min_content_density', 0.7)
     if content_density < min_density:
         failures.append(f"content_density<{min_density:.2f} (current: {content_density:.2f})")
@@ -960,7 +956,7 @@ def evaluate_quality(text: str, args: argparse.Namespace) -> Dict[str, object]:
     if para_variance > max_variance:
         failures.append(f"paragraph_variance_too_high ({para_variance:.0f}, max: {max_variance})")
     
-    # 原有检查项
+    #Original checks
     if dialogue_ratio < args.min_dialogue_ratio:
         failures.append(f"dialogue_ratio_too_low ({dialogue_ratio:.2%})")
     if dialogue_ratio > args.max_dialogue_ratio:
@@ -968,7 +964,7 @@ def evaluate_quality(text: str, args: argparse.Namespace) -> Dict[str, object]:
     if sentence_count < args.min_sentences:
         failures.append(f"sentence_count_too_low ({sentence_count})")
 
-    # 段落重复度失败检查（P0-01 新增）
+    #Paragraph Repeatability Failure Check (Added P0-01)
     min_unique_ratio = getattr(args, 'min_paragraph_unique_ratio', 0.85)
     max_dup_repeat = getattr(args, 'max_duplicate_paragraph_repeat', 2)
 
@@ -983,17 +979,17 @@ def evaluate_quality(text: str, args: argparse.Namespace) -> Dict[str, object]:
             f"max_duplicate_paragraph_repeat>{max_dup_repeat} (current: {max_duplicate_paragraph_repeat})"
         )
 
-    # 概括跳过密度检查
-    # immersive 模式：超阈值为硬失败
-    # standard 模式：超阈值 0.5（极高）也升为硬失败，低于 0.5 仅记录警告
-    # fast 模式：仅记录，不阻断
+    #General Skip Density Check
+    #immersive Mode: Over Threshold Hard Failure
+    #standard mode: over threshold 0.5 (very high) also rises to hard failure, below 0.5 only warnings are logged
+    #fast mode: record only, no blocking
     pacing_mode_val = _resolve_pacing_mode(getattr(args, "pacing_mode", "standard"))
     pacing_p = PACING_MODE_PROFILES[pacing_mode_val]
     para_list = [p.strip() for p in re.split(r"\n\s*\n", body) if p.strip()]
     skip_density = _calc_skip_density(body, para_list)
     max_skip = float(pacing_p.get("max_skip_density", 0.30))
     skip_density_exceeded = skip_density > max_skip
-    _STANDARD_HARD_SKIP_THRESHOLD = 0.50  # standard 模式极高密度升级为硬失败
+    _STANDARD_HARD_SKIP_THRESHOLD = 0.50  #standard mode very high density upgrade to hard failed
     if skip_density_exceeded:
         if pacing_mode_val == "immersive":
             failures.append(
@@ -1028,109 +1024,109 @@ def evaluate_quality(text: str, args: argparse.Namespace) -> Dict[str, object]:
 
 
 def generate_draft_text(project_root: Path, chapter_path: Path, query: str, min_chars: int) -> str:
-    # 兜底模板：LLM 不可用时使用。用 chapter_no 作随机种子，确保每章开头/结尾不同。
-    # 注意：本函数只在 --draft-provider template 或 LLM 调用失败时触发，
-    # 正常写作流程应使用 --draft-provider llm。
+    #Back of pocket template: Use when LLM is not available. Use chapter_no as a random seed, making sure each chapter starts/ends differently.
+    #Note: This function is only triggered when --draft-provider template or LLM call fails.
+    #Normal writing flow should use --draft-provider llm.
     chapter_no = chapter_no_from_name(chapter_path.name)
     title = chapter_path.stem.replace('-', ' ')
     names = load_character_names(project_root)
-    protagonist = names[0] if names else '主角'
-    side = names[1] if len(names) > 1 else '同伴'
+    protagonist = names[0] if names else 'The lead actor'
+    side = names[1] if len(names) > 1 else 'companion'
 
     rng = random.Random(chapter_no)
 
     opening_pool = [
-        (protagonist + '没有多说，直接走向了事情发生的地方。'
-         + query + '——这一步迈出去，就没有回头的余地。'
-         + '他知道自己在做什么，也知道可能付出什么代价。'
+        (protagonist + 'Without saying more, he went straight to the place where it happened.'
+         + query + '--Taking this step, there is no room for turning back.'
+         + 'He knows what he's doing and what it might cost him.'
          + '但有些事，不做会后悔，做了最多是吃亏，两害相权，他选了前者。'),
-        ('事情比预想的复杂。' + protagonist + '站在原地，把已知的信息重新梳理了一遍。'
-         + query + '——每一条线索都指向同一个方向，偏偏每一条都差一截才能闭合。'
-         + '他不急，急没用，这种事急了只会出错。'
+        ('Things are more complicated than expected. '+ protagonist +'站在原地，把已知的信息重新梳理了一遍。'
+         + query + '--Every clue points in the same direction, and every clue is closed by a gap.'
+         + 'He was not in a hurry, it was useless to be in a hurry. If he was in a hurry, he would only'
          + side + '在一旁说："你想好了？"他没有回答，因为还在想。'),
-        (side + '先开口说："你确定要这样做？"'
-         + protagonist + '没有立刻回答，把问题在脑子里转了一圈，才开口："不确定，但现在没有更好的选项。"'
+        (side + 'Start by saying, "Are you sure you want to do this?"'
+         + protagonist + 'Without answering right away, he turned the question around in his head and said, "I'm not sure, but there's no better option right now."'
          + '于是两人就这样决定了：' + query + '，就从这里开始做起。'),
         ('清晨的光线还没有彻底亮起来。' + protagonist + '已经起身，站在窗边把今天要做的事理了一遍。'
-         + query + '——放在平时，这不算什么大事，但放在现在这个节点，每一步都要踩稳。'
+         + query + '—— In normal times, this is not a big deal, but in the current node, every step should be steadily stepped on.'
          + '他动作很轻，没有惊动任何人，然后出了门。'),
-        ('上一章留下的麻烦没有消失，只是换了一张脸。' + protagonist + '盯着眼前的局面，'
-         + '想起某人说过的一句话：问题不会自己消失，它只是在等一个更坏的时机重新出现。'
+        ('The trouble left in the previous chapter didn't go away, it just changed a face. '+ protagonist +' stared at the situation at hand,'
+         + 'Remember what someone said: the problem doesn't go away on its own, it's just waiting for a worse time to reappear.'
          + query + '，就是那个时机终于到了。他把手里的东西收好，准备开始。'),
     ]
 
     closing_pool = [
-        (protagonist + '没有立刻离开，在原地停了一会儿。'
-         + '事情走到这一步，算是告一段落——但"告一段落"不等于结束，只等于把问题暂时压住了。'
-         + '压住的东西，早晚还会冒出来。下一步怎么走，他心里已经有了一个方向，'
+        (protagonist + 'Didn't leave immediately, stopped in place for a while.'
+         + 'When things get to this point, it is like the end of a paragraph - but "the end of a paragraph" does not mean the end, it only means that the problem is temporarily suppressed.'
+         + 'Something that is suppressed will come out sooner or later. What to do next, he already has a direction in his heart,'
          + '只是还没到说出来的时候。'),
-        (side + '问："现在怎么办？"'
-         + protagonist + '想了想，说："先把今天的事收尾，再说下一步。"'
-         + '那句话说得很轻，但两个人都听出来了——这件事还没完，甚至刚刚开始。'
+        (side + 'Ask, "What now?"'
+         + protagonist + 'After thinking about it, he said, "Let's finish what happened today and then move on to the next step."'
+         + 'The sentence was very soft, but both heard it - it was not over, it was just beginning.'
          + side + '没再多问，点了点头，两个人各自散了。'),
         ('夜深了。' + protagonist + '把今天发生的事在脑子里过了一遍，'
-         + '有些东西对上了，有些东西还差一块。差的那块，是整件事的关键，也是目前最难拿到的那块。'
+         + 'Some things are matched, and some things are still one piece away. The one that is bad is the key to the whole thing, and it is also the one that is the hardest to get at the moment.'
          + '他没有急着去找，因为有些东西越找越躲，不如等它自己浮出来。明天还有时间，先休息。'),
         ('结果不算好，也不算坏。' + protagonist + '把事情记下来，合上本子。'
-         + '他没有总结，没有下判断，只是记录。判断留到事情彻底结束再做，现在下结论，太早。'
+         + 'He did not summarize, did not make a judgment, but just recorded. Leave the judgment until the matter is completely over, and it is too early to draw a conclusion now.'
          + side + '看着他说："你总是这样，什么都先记下来再说。"他想了想，回答："记下来，才不会忘。"'),
         ('回去的路上，' + protagonist + '一直没说话。' + side + '也没问。'
-         + '有些问题，现在还没有答案，说了也只是给对方添麻烦。沉默有时候比什么都有用。'
+         + 'There are some questions that have not yet been answered, and what has been said just adds to each other's troubles. Silence is sometimes more useful than anything else.'
          + '走到分叉口，两个人停下来，各自往不同的方向去了。'),
     ]
 
     middle_pool = [
-        (protagonist + '把情况仔细检查了一遍，确认没有遗漏，才继续往下走。'
-         + '这种习惯是多次教训换来的——不是天生谨慎，是被逼出来的。'
-         + '漏掉一个细节，后来要花十倍的力气补，不值当。'
+        (protagonist + 'After carefully checking the situation and confirming that there are no omissions, continue to go down.'
+         + 'This habit comes in exchange for many lessons - not born cautious, but driven out.'
+         + 'Missing a detail, it would take ten times more effort to make up for it later, and it was not worth it.'
          + side + '在旁边等着，没有催他，因为知道他有他的节奏。'),
-        (side + '说："你有没有想过，事情可能不是我们以为的那样？"'
-         + protagonist + '停下来，认真考虑了这个问题。'
-         + '不是第一次有人这么说了，但每次被这样问，他还是会重新检查一遍自己的判断，'
+        (side + 'Say “Have you ever thought that things might not be what we think they are?”'
+         + protagonist + 'Stop and think about it.'
+         + 'This is not the first time someone has said this, but every time he is asked this, he will re-check his judgment.'
          + '看有没有什么地方出了偏差。这一次，他发现，确实有一块地方，他之前想得有点简单了。'),
-        ('中途出了一个岔子。' + protagonist + '没有慌，先把手头的东西放稳，再来处理新冒出来的问题。'
-         + '慌解决不了事情，冷静也不一定能，但至少不会把事情弄得更乱。'
-         + '他先把能控制的部分处理掉，再去看不能控制的那部分。'
+        ('Something went wrong along the way. '+ protagonist +'没有慌，先把手头的东西放稳，再来处理新冒出来的问题。'
+         + 'Panic won't fix things, and calm won't necessarily do, but at least it won't make things any messier.'
+         + 'He disposed of the controllable part first, and then looked at the uncontrollable part.'
          + side + '问："要我帮忙吗？"他说："先看看再说。"'),
         ('有一个细节一直让' + protagonist + '觉得不对，但说不清楚哪里不对。'
-         + '直到这一刻，才突然想明白——不是细节本身有问题，是细节和上下文不搭。'
-         + '单独看没问题，放进整件事里，就出现了一条缝。'
+         + 'It wasn't until this moment that I suddenly realized - it wasn't the details themselves that were wrong, it was the details and the context that didn't match.'
+         + 'Looking at it alone, there was no problem. When I put it into the whole thing, a gap appeared.'
          + '他把这个发现告诉了' + side + '，对方听完，沉默了很久才说："那我们之前判断的方向……"'
          + protagonist + '点头："是的，需要重新想过。"'),
         ('事情推进得比预期慢。' + protagonist + '调整了节奏，不再追着进度走，而是等一个合适的时机。'
-         + '有时候快是拖累，慢反而是推进。他见过太多人因为急着收网，把鱼全跑了。'
+         + 'Sometimes fast is a drag, but slow is a push. He had seen too many people running away from the fish in a hurry to close their nets.'
          + side + '倒是沉得住气："你现在倒想开了。"他说："不是想开了，是想通了。"'),
         (protagonist + '和' + side + '分头行动，各自去处理一件事，约好稍后碰面。'
-         + '不是因为信任，是因为两件事同时需要人，而两个人是现在手里全部的资源。'
+         + 'Not because of trust, because two things need people at the same time, and two people now have all the resources.'
          + '临分开前，' + protagonist + '说："有情况随时通知我。"' + side + '点头："你也是。"'),
         ('遇到了一个不速之客。' + protagonist + '没有表现出惊讶，只是多看了对方一眼，暗中把情况记在心里。'
-         + '对方的来意不明，但来得太巧，巧到不像是偶然。他没有先开口，等对方先说。'
+         + 'The other party's intentions were unclear, but it was too coincidental to be a coincidence. He didn't speak first, waiting for the other party to speak first.'
          + '对方果然先开了口，说了一句话，让他意识到，这个人知道的比他以为的要多。'),
         ('这一段时间里，' + protagonist + '一直在思考一个问题：如果换个角度来看，事情会不会完全不同？'
-         + '答案是——会。但换角度容易，换了角度之后怎么办，才是真正的难题。'
+         + 'The answer is - yes. But changing the angle is easy. What to do after changing the angle is the real problem.'
          + '他把这个问题说给' + side + '听，对方的回答很简单："先换，换完再说。"'
          + '他觉得这个回答有点粗，但又不得不承认，有时候确实只能这样。'),
-        ('天色开始变暗。还有几件事没有处理完，但有些事急不来，只能等。'
-         + protagonist + '把优先级重新排了一遍，把今晚能做的和只能明天做的分开，先把今晚的做完。'
+        ('The sky began to darken. There were still a few things that hadn't been dealt with, but some things couldn't be rushed and had to wait.'
+         + protagonist + 'Reprioritize, separate what you can do tonight from what you can only do tomorrow, and finish what you can tonight.'
          + '他这样做事已经很久了，不是计划感特别强，只是不愿意把事情搅成一团。'),
-        (side + '带来了一条新消息。' + protagonist + '听完，沉默了片刻，然后说："这改变了一些事情。"'
-         + '不是全部，但是重要的一部分。他把原来的计划在脑子里调整了一遍，改动不大，但方向有所偏移。'
+        (side + 'with a new message. '+ protagonist +'听完，沉默了片刻，然后说："这改变了一些事情。"'
+         + 'Not all, but an important part. He adjusted the original plan in his mind, little changed, but there was a deviation in the direction.'
          + side + '问："好的方向，还是坏的方向？"他想了想，说："还不确定，走一步看一步。"'),
         ('这件事牵扯的人比想象中多。' + protagonist + '意识到，自己需要更谨慎一些。'
-         + '不是因为怕，是因为一个错误波及的范围会更大。谨慎不等于退缩，只是换了一种走法。'
+         + 'Not because you're scared, but because a mistake is bigger. Prudence is not the same as withdrawal, but a different way of doing things.'
          + '他把这个想法告诉了' + side + '，对方说："我一直觉得你太谨慎了。"他说："太谨慎也比不够谨慎好。"'),
         ('有一个时刻，' + protagonist + '几乎要放弃。但只是那一刻，之后还是继续了。'
-         + '不是因为突然想通了什么，是因为放弃之后也没有更好的去处。既然都是难，就继续这条路。'
+         + 'Not because I suddenly figured out something, but because there was no better place to go after giving up. Since it was all difficult, we should continue on this path.'
          + '他没有跟任何人说这件事，包括' + side + '。有些东西，说出来反而更重。'),
-        (protagonist + '回到原地，把之前记录的东西重新看了一遍。'
-         + '信息量并不小，但真正有用的不多。这很正常——有用的信息永远比没用的少。'
+        (protagonist + 'Go back and revisit what was previously recorded.'
+         + 'The amount of information is not small, but really useful is not much. This is normal - useful information is always less than useless.'
          + '他把有用的单独标出来，其他的先放着。' + side + '凑过来看了一眼，说："就这些？"他说："就这些，够了。"'),
         ('事情发展到某个节点，开始出现分叉。' + protagonist + '需要做一个选择，而每一条路都有代价。'
-         + '他没有急着决定，先把每条路的代价都列出来，再比较哪一种代价是他能接受的。'
+         + 'He was not in a hurry to decide, first listing the cost of each road, and then comparing which cost he could accept.'
          + side + '说："你考虑太多了。"他说："我宁可考虑太多，也不要考虑太少。"'),
         (side + '说了一句他没想到的话。' + protagonist + '愣了一下，然后说："你怎么知道？"'
-         + side + '说："猜的。但猜中了吧？"'
-         + protagonist + '没有直接回答，只是说："继续说。"'
+         + side + 'Said, "Guess what. But guess what?"'
+         + protagonist + 'Instead of answering directly, he simply said, "Go ahead."'
          + '这一段对话，让整件事突然变得比之前清晰了不少。'),
     ]
 
@@ -1143,24 +1139,24 @@ def generate_draft_text(project_root: Path, chapter_path: Path, query: str, min_
 
     text = '# ' + title + '\n\n' + '\n\n'.join(paragraphs)
 
-    # 兜底补充段落：若字数不足 target_chars，追加若干备用段落（每段各不同，不循环复用）
+    #Supplementary paragraphs at the bottom of the pocket: If the number of words is not enough, add some spare paragraphs (each paragraph is different, and it will not be reused repeatedly)
     target_chars = max(min_chars, 2500)
     extra_pool = [
-        (protagonist + '把手头的事情暂停了一下，环顾周围。'
-         + '这一带他来过几次，但每次来的原因都不一样，这一次也不例外。'
-         + '他没有急着动，先把能观察到的信息收集完，再决定下一步怎么做。'
+        (protagonist + 'Pausing the matter at hand, he looked around.'
+         + 'He had been here several times, but the reason for each time was different, and this time was no exception.'
+         + 'He was not in a hurry. He gathered all the information he could observe before deciding what to do next.'
          + '有时候，多等一分钟，比直接冲上去强得多。'),
-        ('两人之间有一段时间没说话。'
-         + '不是因为没话说，是因为有些话说了也没用，不如省着力气。'
+        ('There was a period of silence between the two of them.'
+         + 'It was not because there was nothing to say, it was because some words were useless, it was better to save effort.'
          + side + '最后先开口："你打算怎么处理？"' + protagonist + '想了想，说："先把能确认的部分确认了再说，其他的等。"'),
-        (protagonist + '回头看了一眼来路，然后继续往前走。'
-         + '他清楚，这件事从一开始就没有退路，不是因为被逼的，是因为他自己选的。'
+        (protagonist + 'Take a look back and move on.'
+         + 'He knew that there was no turning back from the beginning of this matter, not because he was forced, but because he chose it himself.'
          + '既然选了，就没有半途而废的道理。接下来的事，一件一件来。'),
         ('到了某个节点，' + protagonist + '意识到，自己对这件事的判断，和最开始相比，已经变了不少。'
-         + '不是被说服了，是被事实改变了。这种改变让他有点不舒服，但他觉得，这是好事——'
+         + 'Not convinced, but changed by the facts. This change made him a little uncomfortable, but he felt that it was a good thing--'
          + '能被事实改变，说明还没有固执到无法转圜的地步。'),
         (side + '问了一个问题，' + protagonist + '没有立刻回答。'
-         + '那个问题触到了他一直没想清楚的地方。他不喜欢在没想清楚的时候开口，'
+         + 'That question touched on something he hadn't been able to figure out. He doesn't like to talk when he's not thinking clearly.'
          + '所以他说："给我一点时间。"' + side + '点头，没有催。'),
     ]
     pure_len = len(re.sub(r'\s+', '', text))
@@ -1196,18 +1192,17 @@ def _generate_beat_draft(
     writing_constraints: Optional[Dict[str, object]],
     args: argparse.Namespace,
 ) -> Tuple[bool, str]:
-    """Beat Sheet 流水线：generate → expand → synthesize。
+    """Beat Sheet pipeline: generate → expand → synthesize.
 
-    返回 (success: bool, mode: str)。
-    成功时 chapter_path 已被写入合成草稿。
-    失败时返回 (False, error_reason)，调用方应回退到普通 draft 模式。
-    """
-    chapter_goal = query[:200]  # 截断保证参数合法
+    Returns (success: bool, mode: str).
+    chapter_path has been written to the compositing draft on success.
+    If (False, error_reason) is returned on failure, the caller should fall back to normal draft mode."""
+    chapter_goal = query[:200]  #Truncation guarantee parameter is legal
 
     pacing_depth = _resolve_pacing_mode(getattr(args, "pacing_mode", "standard"))
 
-    # 从 writing_constraints 提取大纲约束和事件推荐，丰富章节目标描述
-    # 使 beat 骨架 / 扩写 prompt 获得真实的剧情约束而非空泛目标
+    #Extract outline constraints and event recommendations from writing_constraints to enrich chapter objective descriptions
+    #Make beat skeleton/extension prompt get real story constraint instead of empty general target
     enriched_goal = chapter_goal
     if writing_constraints:
         parts: List[str] = [chapter_goal]
@@ -1222,7 +1217,7 @@ def _generate_beat_draft(
             parts.append(f"人物关系：{str(graph_ctx)[:100]}")
         enriched_goal = " | ".join(p for p in parts if p)[:400]
 
-    # Step 1: 生成 Beat Sheet 骨架
+    #Step 1: Generate a Beat Sheet skeleton
     b_code, _b_out, _b_err, b_payload = run_python(
         SCRIPT_DIR / "beat_sheet_generator.py",
         ["generate",
@@ -1237,7 +1232,7 @@ def _generate_beat_draft(
 
     beat_count = int(b_payload.get("beat_count", 4))
 
-    # 预加载 beat sheet，用于获取每个 beat 的 word_target
+    #Preload beat sheet to get word_target for each beat
     beats_dir = project_root / "00_memory" / "beats"
     beats_dir.mkdir(parents=True, exist_ok=True)
     sheet_path = beats_dir / f"ch{chapter_no:04d}_beat_sheet.json"
@@ -1248,7 +1243,7 @@ def _generate_beat_draft(
     pacing_profile = PACING_MODE_PROFILES[pacing_depth]
     max_skip_density = float(pacing_profile.get("max_skip_density", 0.30))
 
-    # Step 2: 逐 Beat 扩写 + Beat 级校验与重试
+    #Step 2: Extend Beat by Beat + Beat-level checksum and retry
     draft_provider = _resolve_draft_provider(args, project_root)
 
     for beat_id in range(1, beat_count + 1):
@@ -1266,7 +1261,7 @@ def _generate_beat_draft(
         expand_prompt = e_payload.get("expand_prompt", "")
         beat_file = beats_dir / f"ch{chapter_no:04d}_beat{beat_id:02d}_expand.md"
 
-        # 从 beat sheet 获取该 beat 的字数目标
+        #Get the target number of words of the beat from the beat sheet
         beat_meta = next((b for b in beats_meta if b.get("beat_id") == beat_id), {})
         word_target = int(e_payload.get("word_target") or beat_meta.get("word_target") or 800)
 
@@ -1279,7 +1274,7 @@ def _generate_beat_draft(
                 if getattr(args, "llm_model", None):
                     overrides["model"] = args.llm_model
                 if getattr(args, "llm_api_key", None):
-                    # 按 provider 使用正确的 key 名，避免静默退化到环境变量兜底
+                    #Use the correct key name by the provider to avoid silent degradation to the bottom of the environment variable
                     _llm_prov = getattr(args, "llm_provider", "") or ""
                     if _llm_prov == "openai":
                         overrides["openai_api_key"] = args.llm_api_key
@@ -1288,21 +1283,21 @@ def _generate_beat_draft(
                     else:
                         overrides["api_key"] = args.llm_api_key
 
-                # ── Phase 1：场景分解（Two-Phase Writing）────────────────────
-                # 调用 LLM 将 beat 预先拆解为 5~7 个微时刻，强迫模型承诺
-                # 具体瞬间（action/sensory/emotion/obstacle），使后续写作
-                # 无法通过概括跳过来压缩内容。分解失败时降级到原流程。
+                #── Phase 1: Two-Phase Writing────────────────────
+                #Call LLM to pre-disassemble beat into 5 ~ 7 micro moments, forcing the model to commit
+                #concrete moments (action/sensory/emotion/obstacle) to make subsequent writing
+                #Unable to compress content by skipping over generalizations. De-escalate to original flow when decomposition fails.
                 scene_map = _decompose_beat_scenes(
                     expand_prompt, word_target, overrides, project_root
                 )
-                # 用场景锚定提示词替换原始扩写提示词（Phase 2 基础提示词）
+                #Replace the original Extended Prompt (Phase 2 Base Prompt) with the Scene Anchor Prompt
                 base_prompt = (
                     _build_scene_anchored_prompt(expand_prompt, scene_map)
                     if scene_map is not None
                     else expand_prompt
                 )
 
-                # Beat 级校验与重试循环（最多 3 次尝试，失败降级接受继续下一 beat）
+                #Beat-level checksum with retry loop (up to 3 attempts, failed demotion accepted to continue to next beat)
                 attempt_results: List[Dict[str, object]] = []
                 accepted = False
                 final_validation: Optional[Dict[str, object]] = None
@@ -1337,7 +1332,7 @@ def _generate_beat_draft(
                         })
                         continue
 
-                    # LLM 写成功，立即校验 beat 正文质量
+                    #LLM written successfully, immediately verify beat body quality
                     beat_text = read_text(beat_file) if beat_file.exists() else ""
                     final_validation = cast(
                         Dict[str, object],
@@ -1352,13 +1347,13 @@ def _generate_beat_draft(
                     if final_validation.get("passed"):
                         accepted = True
                         break
-                    # 未通过 → 继续下一次 attempt（最多到 attempt=2）
+                    #Failed to → continue the next attempt (up to attempt = 2)
 
-                # 所有尝试用尽仍未通过：降级写入扩写提示词模板（保证合成不中断）
+                #All attempts are still unsuccessful: downgrade write expansion prompt templates (keep compositing uninterrupted)
                 if not accepted and (not beat_file.exists() or not read_text(beat_file).strip()):
                     write_text(beat_file, expand_prompt)
 
-                # 将 beat 级校验结果写回 beat sheet，供后续分析
+                #Write the beat-level check results back to the beat sheet for subsequent analysis
                 if beat_meta:
                     beat_meta["generation_meta"] = {  # type: ignore[assignment]
                         "pacing_depth": pacing_depth,
@@ -1378,7 +1373,7 @@ def _generate_beat_draft(
         else:
             write_text(beat_file, expand_prompt)
 
-    # Step 3: chapter_synthesizer 合成
+    #Step 3: chapter_synthesizer synthesis
     s_code, _s_out, _s_err, s_payload = run_python(
         SCRIPT_DIR / "chapter_synthesizer.py",
         ["synthesize",
@@ -1432,11 +1427,11 @@ def apply_targeted_quality_fix(
     paragraph_count = int(paragraph_count_raw) if isinstance(paragraph_count_raw, (int, float, str)) else 0
     sentence_count = int(sentence_count_raw) if isinstance(sentence_count_raw, (int, float, str)) else 0
 
-    # 跨轮次编号接续
+    #Cross-round numbering succession
     next_paragraph_idx = _next_fix_block_index(txt, "\u8865\u5145\u6bb5\u843d")
     next_progress_idx = _next_fix_block_index(txt, "\u8865\u5145\u63a8\u8fdb")
 
-    # 优先处理 pacing_skip_density_critical
+    #Prioritize pacing_skip_density_critical
     if any(
         f.startswith("pacing_skip_density_critical") or f.startswith("pacing_skip_density_too_high")
         for f in failures
@@ -1475,21 +1470,21 @@ def apply_targeted_quality_fix(
 
     if any(f.startswith("dialogue_ratio<") or f.startswith("dialogue_ratio_too_low") for f in failures):
         txt += (
-            "\n\n"
-            f"“先别下结论，”同伴压低声音，“{query}这条线还缺最后一块证据。”"
+            "\ n\ n "
+            f "" Don't jump to conclusions, "" the companion lowered his voice. "" The {query} line still lacks the last piece of evidence. """
             "主角点头：“那就按时间线回查，每一步都留痕。”"
         )
         actions.append("补足对话占比")
 
     if any(f.startswith("dialogue_ratio>") or f.startswith("dialogue_ratio_too_high") for f in failures):
         txt += (
-            "\n\n"
-            "叙述补偿：两人将对话结论写入行动清单，逐项标记风险等级与验证顺序，"
-            "避免口头信息过载导致剧情推进失焦。"
+            "\ n\ n "
+            "Narrative Compensation: Two people write the conclusion of the conversation into the action list, marking the risk level and verification order one by one."
+            "Avoid verbal information overload that causes the plot to go out of focus."
         )
         actions.append("稀释过高对话占比")
 
-    # 最后兜底字符数
+    #Last Pocket Bottom Characters
     cur_chars = len(re.sub(r"\s+", "", clean_for_stats(txt)))
     if cur_chars < args.min_chars:
         needed = args.min_chars - cur_chars
@@ -1511,7 +1506,7 @@ def apply_targeted_quality_fix(
 def write_quality_report(gate_dir: Path, quality_before: Dict[str, object], quality_after: Dict[str, object]) -> Path:
     p = gate_dir / "quality_report.md"
 
-    # 辅助函数：安全获取字典值
+    #Auxiliary function: secure fetching of dictionary values
     def safe_get(d: Dict[str, object], key: str, default: Any = None) -> Any:
         return d.get(key, default) if isinstance(d, dict) else default
 
@@ -1581,7 +1576,7 @@ def write_gate_artifacts(
 - AI词命中：{quality['ai_phrase_hits'] if quality['ai_phrase_hits'] else '未命中'}
 - 结论：本章风格基本稳定，建议继续保持短句与动作描写平衡。
 """
-    # 调用 text_humanizer 获取 AI 痕迹检测数据，severity >= medium 时自动纠正（最多2轮）
+    #Call text_humanizer to get AI trace detection data, and automatically correct when severity > = medium (up to 2 rounds)
     _SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2}
     humanizer_section = ""
     humanizer_rounds = 0
@@ -1622,7 +1617,7 @@ def write_gate_artifacts(
                 except Exception as _hum_err:
                     print(f"[警告] Humanizer 自动修复失败: {_hum_err}")
             humanizer_rounds += 1
-            # 重新检测，severity 已达 low 则退出循环
+            #Retest, if severity reaches low, exit the loop
             re_code, _, _, re_payload = run_python(
                 SCRIPT_DIR / "text_humanizer.py",
                 ["report", "--chapter-file", str(chapter_path)],
@@ -1632,7 +1627,7 @@ def write_gate_artifacts(
                 h_payload = re_payload
                 break
             if not llm_provider:
-                break  # 非 LLM 模式只生成一次 prompt，不继续循环
+                break  #Non-LLM mode only generates a prompt once, does not continue the loop
         severity_map = {"low": "轻微", "medium": "中等", "high": "严重"}
         sev = severity_map.get(h_payload.get("severity", ""), h_payload.get("severity", ""))
         report_md = h_payload.get("report", "")
@@ -1640,10 +1635,10 @@ def write_gate_artifacts(
         if humanizer_auto_fixed:
             humanizer_section += f"\n\n（自动纠正已执行 {humanizer_rounds} 轮）"
         elif humanizer_rounds > 0:
-            humanizer_section += "\n\n（已生成润色 prompt，需人工执行 /校稿 完成纠正）"
+            humanizer_section += "\ n\ n (Touch-up prompt has been generated, manual execution/proofreading correction is required)"
     else:
-        sev = "未知"
-        humanizer_section = "\n\n（text_humanizer 检测跳过：脚本不可用或无法读取文件）"
+        sev = "Unknown"
+        humanizer_section = "\ n\ n (text_humanizer detection skipped: script not available or unable to read file)"
 
     copyedit = f"""# 校稿报告
 
@@ -1653,17 +1648,17 @@ def write_gate_artifacts(
 - 发布建议：参考下方检测报告后执行两遍式润色
 {humanizer_section}
 """
-    # evaluate_quality() 返回 "passed" 键；兼容上游可能传入 "ok" 键的场景
+    #evaluate_quality () returns the "passed" key; compatible with scenarios where the "ok" key may be passed upstream
     quality_ok: bool = bool(quality.get("passed", quality.get("ok", False)))
     quality_failures: List[str] = list(quality.get("failures", []))  # type: ignore[arg-type]
     if quality_ok:
-        publish_verdict = "可发布（通过）"
-        publish_keyword = "可发布 / 通过 / PASS"
-        publish_note = "本章已完成自动流程并通过所有质量门禁项。"
+        publish_verdict = "Publishable (via)"
+        publish_keyword = "Publishable/Passable/pass"
+        publish_note = "This chapter has completed the automated process and passed all quality access items."
     else:
-        publish_verdict = "不建议发布（未通过）"
-        publish_keyword = "不通过 / FAIL"
-        failure_lines = "\n".join(f"  - {f}" for f in quality_failures) if quality_failures else "  - 未知失败"
+        publish_verdict = "Not recommended for publishing (not passed)"
+        publish_keyword = "Fail/fail"
+        failure_lines = "\n".join(f"  - {f}" for f in quality_failures) if quality_failures else "- Unknown failure"
         publish_note = f"本章未通过以下质量门禁项，需修复后重新检查：\n{failure_lines}"
 
     publish = f"""# 发布判定
@@ -1805,7 +1800,7 @@ def auto_fix_after_gate_failure(
             write_quality_report(gate_dir, old_quality, quality)
             need_rebuild_gate_artifacts = True
 
-    # 所有修复完成后统一重建门禁产物，确保时间戳晚于章节文件
+    #Rebuild access control products uniformly after all repairs are completed, ensuring that the timestamp is later than the chapter file
     if need_rebuild_gate_artifacts:
         write_gate_artifacts(project_root, chapter_path, query, quality, query_payload)
         actions.append("重建门禁产物文件")
@@ -1846,8 +1841,8 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
         }
 
     started_at = time.time()
-    query = args.query.strip() if args.query else "推进下一章剧情"
-    # 节奏模式：同步提升最低字数门槛
+    query = args.query.strip() if args.query else "Advancing the Plot of the Next Chapter"
+    #Rhythm mode: synchronously raise the minimum word count threshold
     pacing_mode = _resolve_pacing_mode(getattr(args, "pacing_mode", "standard"))
     args.pacing_mode = pacing_mode
     pacing_profile = PACING_MODE_PROFILES[pacing_mode]
@@ -1922,7 +1917,7 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
 
         snapshot_path = create_snapshot(chapter_path, flow_dir, run_id)
 
-        # 自动调研：检测知识缺口
+        #Automated Research: Detecting Knowledge Gaps
         research_gaps = None
         if args.auto_research:
             try:
@@ -1931,9 +1926,9 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
                 if gaps_result.get("has_gaps"):
                     research_gaps = gaps_result
             except ImportError:
-                pass  # research_agent.py 不存在时静默跳过
+                pass  #silently skip when research_agent.py does not exist
 
-        # 写前约束注入：大纲配额 / 反向刹车 / 事件推荐 / 知识图谱上下文
+        #Pre-write Constraint Injection: Outline Quota/Reverse Brake/Event Recommendation/Knowledge Graph Context
         writing_constraints: Optional[Dict[str, object]] = None
         injected_lines: List[str] = []
         if args.enable_constraints and chapter_path:
@@ -1965,7 +1960,7 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
                 if ctx_prompt.strip():
                     injected_lines.append(ctx_prompt.strip())
 
-        # RAG 检索结果注入：将 top-k 历史片段作为写作参考（与约束独立，始终注入）
+        #Rag search result injection: use top-k historical fragments as writing references (independent of constraints, always injected)
         rag_lines: List[str] = []
         if isinstance(q_payload, dict):
             _rag_result = q_payload.get("result")
@@ -1986,7 +1981,7 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
                 if len(rag_lines) >= _rag_limit:
                     break
 
-        # 拼装最终写作查询：原始意图 + 相关历史剧情 + 写作约束
+        #Build Final Writing Query: Original Intent + Relevant Historical Plot + Writing Constraints
         query_sections = [query]
         if rag_lines:
             query_sections.append("[相关历史剧情]\n" + "\n".join(f"- {line}" for line in rag_lines))
@@ -1999,7 +1994,7 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
         fallback_applied = False
         llm_error_msg = None
 
-        # Beat Sheet 流水线（优先于普通 draft，默认开启）
+        #Beat Sheet pipeline (overrides normal draft, opens by default)
         if getattr(args, "use_beat_sheet", True) and chapter_is_draft_stub(chapter_path):
             _beat_chapter_no = chapter_no_from_name(chapter_path.name)
             if _beat_chapter_no > 0:
@@ -2013,7 +2008,7 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
 
         if chapter_is_draft_stub(chapter_path) and args.auto_draft:
             if draft_provider_used == "llm":
-                # 尝试使用 LLM 写作
+                #Try writing with LLM
                 try:
                     from novel_chapter_writer import write_chapter
                     config_overrides = {}
@@ -2042,7 +2037,7 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
                         draft_provider_used = "llm"
                         auto_draft_applied = True
                     else:
-                        # LLM 调用失败，回退到模板
+                        #LLM call failed, fallback to template
                         llm_error_msg = llm_result.get("error", "unknown error")
                         draft = generate_draft_text(project_root, chapter_path, query, min_chars=args.min_chars)
                         write_text(chapter_path, draft)
@@ -2051,7 +2046,7 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
                         auto_draft_applied = True
 
                 except Exception as e:
-                    # 导入或调用异常，回退到模板
+                    #Import or call exceptions, fallback to templates
                     llm_error_msg = str(e)
                     draft = generate_draft_text(project_root, chapter_path, query, min_chars=args.min_chars)
                     write_text(chapter_path, draft)
@@ -2059,9 +2054,9 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
                     fallback_applied = True
                     auto_draft_applied = True
             elif draft_provider_used == "beat_sheet_template":
-                # beat_sheet_template 模式：beat 合成已产出结构化写作指引（BEAT_SHEET_STUB），
-                # 用 beat sheet JSON 中的 chapter_goal 和各 beat 摘要构造富语义 query，
-                # 生成比纯泛型模板更贴合剧情的草稿，保留 beat 结构信息。
+                #beat_sheet_template mode: beat synthesizes the output structured writing guidelines (beat_sheet_stub),
+                #Use chapter_goal in beat sheet JSON and each beat digest to construct a semantic-rich query.
+                #Generate drafts that fit the plot better than pure generic templates, preserving beat structure information.
                 beat_sheet_json = load_json(
                     project_root / "00_memory" / "beats"
                     / f"ch{chapter_no_from_name(chapter_path.name):04d}_beat_sheet.json",
@@ -2084,7 +2079,7 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
                 write_text(chapter_path, draft)
                 auto_draft_applied = True
             else:
-                # 纯 template 模式
+                #Pure template mode
                 draft = generate_draft_text(project_root, chapter_path, query, min_chars=args.min_chars)
                 write_text(chapter_path, draft)
                 auto_draft_applied = True
@@ -2118,7 +2113,7 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
         retry_actions: List[str] = []
         gate_passed_final = False
 
-        # 提前提取事件类型和节奏档位，传给门禁做"含当前章"的预演校验
+        #Extract the event type and rhythm gear in advance and pass it to the access control for preview verification of "Containing the Current Chapter"
         _gate_event_types = _extract_event_types_from_constraints(writing_constraints)
         _gate_pacing_tier = _infer_pacing_tier(_gate_event_types) if _gate_event_types else None
         _gate_pacing_et_str = ",".join(_gate_event_types)
@@ -2158,7 +2153,7 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
             ["build", "--project-root", str(project_root)],
         )
 
-        # 写后处理：图谱更新 + 批量审核（均为可选，默认关闭）
+        #Post-write processing: Atlas update + batch review (both optional, off by default)
         graph_update_file: Optional[str] = None
         batch_review_task: Optional[str] = None
         style_update_file: Optional[str] = None
@@ -2172,7 +2167,7 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
                 )
                 if isinstance(_g_payload, dict):
                     graph_update_file = _g_payload.get("update_file")
-                # apply：将 extract 生成的待执行更新写入知识图谱
+                #apply: write extract-generated pending updates to the Knowledge Graph
                 if isinstance(_g_payload, dict) and _g_payload.get("ok"):
                     run_python(
                         SCRIPT_DIR / "story_graph_updater.py",
@@ -2197,7 +2192,7 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
                     )
                     if isinstance(_r_payload, dict):
                         batch_review_task = _r_payload.get("task_file")
-            # 大纲锚点推进：门禁通过后将锚点推进到下一章
+            #Outline Anchor Advancement: Advancing the anchor point to the next chapter after the access control passes
             if args.enable_constraints and _chapter_no > 0:
                 run_python(
                     SCRIPT_DIR / "outline_anchor_manager.py",
@@ -2205,7 +2200,7 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
                      "--project-root", str(project_root),
                      "--to-chapter", str(_chapter_no + 1)],
                 )
-            # 事件矩阵记录：门禁通过后记录本章实际使用的事件类型，维持冷却状态
+            #Event matrix record: After the access control is passed, the event type actually used in this chapter is recorded, and the cooling state is maintained.
             if args.enable_constraints and _chapter_no > 0:
                 _filtered_types = _extract_event_types_from_constraints(writing_constraints)
                 if _filtered_types:
@@ -2218,7 +2213,7 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
                             "--types", ",".join(_filtered_types),
                         ],
                     )
-                    # 节奏档位记录：从事件类型推断档位并写入 pacing_history.json
+                    #Rhythm gear record: Event type infers gear and writes to pacing_history.json
                     _pacing_tier = _infer_pacing_tier(_filtered_types)
                     run_python(
                         SCRIPT_DIR / "pacing_tracker.py",
@@ -2230,7 +2225,7 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
                             "--event-types", ",".join(_filtered_types),
                         ],
                     )
-            # 风格基准自动更新：每 N 章（默认10章）更新一次
+            #Style benchmark automatically updated: every N chapters (default 10 chapters)
             style_update_file: Optional[str] = None
             if getattr(args, "auto_style_update", True):
                 _style_interval = getattr(args, "style_update_interval", 10)
@@ -2321,15 +2316,15 @@ def continue_write(args: argparse.Namespace) -> Dict[str, object]:
         }
 
         if draft_mode and not args.auto_draft:
-            result["next_step"] = "章节仍是占位草稿，请补全正文后再次执行 /继续写，或启用 --auto-draft。"
+            result["next_step"] = "The section is still a placeholder draft, please complete the body and run/resume writing again, or enable --auto-draft."
         elif draft_mode:
-            result["next_step"] = "已尝试自动成稿但仍检测到占位标记，请手动补全正文后再执行。"
+            result["next_step"] = "An attempt was made to auto-complete but a placeholder was still detected, please complete the body manually before proceeding."
         elif fallback_applied and llm_error_msg:
             result["next_step"] = f"LLM写作失败({llm_error_msg})，已自动回退到模板模式。请检查API配置后重试。"
         elif gate_passed_final:
-            result["next_step"] = "章节已通过门禁，可进入下一章。"
+            result["next_step"] = "The chapter has been gated to proceed to the next chapter."
         else:
-            result["next_step"] = "章节未通过门禁，已生成 repair_plan.md。请执行 /修复本章。"
+            result["next_step"] = "Chapter failed access control, repair_plan.md generated. Please execute/fix this chapter."
 
         metrics_summary = update_flow_metrics(project_root, {
             "ts": dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -2400,14 +2395,14 @@ def one_click(args: argparse.Namespace) -> Dict[str, object]:
         ["build", "--project-root", str(project_root)],
     )
 
-    # 初始化知识图谱：调用 init 子命令确保结构符合 story_graph_builder 标准
+    #Initialize Knowledge Graph: Call the init subcommand to ensure that the structure complies with the story_graph_builder standard
     story_graph_file = project_root / "00_memory" / "story_graph.json"
     if not story_graph_file.exists():
         run_python(SCRIPT_DIR / "story_graph_builder.py", ["init", "--project-root", str(project_root)])
         if story_graph_file.exists():
             files["changed"].append(str(story_graph_file))
 
-    # 初始化大纲锚点：调用 init 子命令，自动解析 novel_plan.md 构建 volumes
+    #Initialize the outline anchor: Call the init subcommand to automatically resolve novel_plan.md to build volumes
     outline_anchors_file = project_root / "00_memory" / "outline_anchors.json"
     if not outline_anchors_file.exists():
         target_chapters = max(10, int(getattr(args, "target_words", 0) or 0) // 3500)
@@ -2419,7 +2414,7 @@ def one_click(args: argparse.Namespace) -> Dict[str, object]:
         if outline_anchors_file.exists():
             files["changed"].append(str(outline_anchors_file))
 
-    # 将开书前五要素确认信息写入 idea_seed.md（目标读者/写作风格/核心禁区）
+    #Write the confirmation information of the first five elements of the book into idea_seed.md (target audience/writing style/core restricted area)
     confirmation_items = [
         ("目标读者", getattr(args, "target_audience", "")),
         ("写作风格", getattr(args, "writing_style", "")),
@@ -2430,7 +2425,7 @@ def one_click(args: argparse.Namespace) -> Dict[str, object]:
     ]
     if confirmation_lines:
         idea_seed_file = project_root / "00_memory" / "idea_seed.md"
-        original = read_text(idea_seed_file) if idea_seed_file.exists() else "# 创意种子\n"
+        original = read_text(idea_seed_file) if idea_seed_file.exists() else "# IdeaSeed\ n"
         addition = "\n\n## 开书前确认\n" + "\n".join(confirmation_lines) + "\n"
         write_text(idea_seed_file, original.rstrip() + addition)
         if str(idea_seed_file) not in files["changed"]:
@@ -2448,14 +2443,13 @@ def one_click(args: argparse.Namespace) -> Dict[str, object]:
 
 
 def cmd_revise_outline(args: argparse.Namespace) -> Dict[str, object]:
-    """执行 /改纲续写：锚点重算 + 图谱级联标记 + RAG 索引重建。
+    """Execute/Renew: Anchor recalculation + Atlas cascade marker + rag index reconstruction.
 
-    使用前提：用户已手动编辑 novel_plan.md，本命令将所有下游状态与新大纲同步。
-    三步骤依次执行：
-      1. 备份旧锚点 + 重算大纲锚点（必须成功，否则 ok=False）
-      2. 图谱级联分析（图谱存在时执行，失败不阻断后续）
-      3. 重建 RAG 索引（始终执行，失败不阻断报告生成）
-    """
+    Prerequisite for use: The user has manually edited novel_plan.md, and this command synchronizes all downstream states with the new outline.
+    Follow these three steps in turn:
+      1. Backup old anchor + recalculate outline anchor (must succeed, otherwise ok = False)
+      2. Atlas cascade analysis (performed when the atlas is present, failure does not block follow-up)
+      3. Rebuild rag index (always execute, fail without blocking report generation)"""
     project_root = Path(args.project_root).expanduser().resolve()
     from_chapter = int(args.from_chapter)
     change_description = str(getattr(args, "change_description", "") or "").strip()
@@ -2484,14 +2478,14 @@ def cmd_revise_outline(args: argparse.Namespace) -> Dict[str, object]:
     backup_created = False
 
     try:
-        # Step 1: 备份现有锚点（不存在则跳过）
+        #Step 1: Backup existing anchors (skip if none exist)
         if anchors_file.exists():
             ts = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
             backup_file = flow_dir / f"backup_anchors_{ts}.json"
             shutil.copy2(str(anchors_file), str(backup_file))
             backup_created = True
 
-        # Step 2: 重算大纲锚点（从 novel_plan.md 重新解析卷结构）
+        #Step 2: Recalculate the outline anchor (re-parsing the volume structure from novel_plan.md)
         r_code, r_out, _r_err, r_payload = run_python(
             SCRIPT_DIR / "outline_anchor_manager.py",
             ["recalculate", "--project-root", str(project_root)],
@@ -2501,7 +2495,7 @@ def cmd_revise_outline(args: argparse.Namespace) -> Dict[str, object]:
         )
         anchors_recalculated = r_code == 0 and bool(recalc_result.get("ok"))
 
-        # Step 3: 图谱级联标记（锚点成功且图谱存在时执行，失败不阻断后续）
+        #Step 3: Atlas cascade marking (when the anchor point is successful and the Atlas exists, the failure does not block the follow-up)
         cascade_result: Dict[str, object] = {"ok": False, "skipped": True}
         cascade_ok = False
         graph_file = project_root / "00_memory" / "story_graph.json"
@@ -2520,7 +2514,7 @@ def cmd_revise_outline(args: argparse.Namespace) -> Dict[str, object]:
             )
             cascade_ok = c_code == 0 and bool(cascade_result.get("ok"))
 
-        # Step 4: 重建 RAG 索引（锚点成功后执行，不依赖级联结果）
+        #Step 4: Rebuild the rag index (executed after a successful anchor point, independent of cascading results)
         rag_result: Dict[str, object] = {"ok": False, "skipped": True}
         rag_rebuilt = False
         if anchors_recalculated:
@@ -2531,7 +2525,7 @@ def cmd_revise_outline(args: argparse.Namespace) -> Dict[str, object]:
             rag_result = b_payload if isinstance(b_payload, dict) else {"stdout": b_out}
             rag_rebuilt = b_code == 0 and bool(rag_result.get("ok"))
 
-        # Step 5: 写入改纲汇总报告
+        #Step 5: Write a summary report of the reform
         report_lines = [
             "# 改纲续写报告",
             "",
@@ -2564,7 +2558,7 @@ def cmd_revise_outline(args: argparse.Namespace) -> Dict[str, object]:
         ]
         report_written = write_text(report_file, "\n".join(report_lines))
 
-        # ok 的判定：锚点重算和报告写入是必要条件；级联和RAG失败可降级继续
+        #determination of ok: Anchor recalculation and report writing are necessary; cascading and rag failures can be demoted to continue
         ok = anchors_recalculated and report_written
         error: Optional[str] = (
             None if ok
@@ -2572,9 +2566,9 @@ def cmd_revise_outline(args: argparse.Namespace) -> Dict[str, object]:
             else "report_write_failed"
         )
         next_step = (
-            "改纲完成：锚点已重算、图谱已标记、索引已重建。请执行 /继续写 从新方向推进。"
+            "Redesign completed: the anchor has been recalculated, the atlas has been marked, and the index has been rebuilt. Please execute/continue writing from the new direction forward."
             if (anchors_recalculated and cascade_ok and rag_rebuilt)
-            else "改纲流程部分完成，请查看 revise_outline_report.md 确认失败步骤后再执行 /继续写。"
+            else "The revision process is partially completed, please check revise_outline_report.md to confirm the failure step before executing/continuing to write."
         )
 
         return {
@@ -2605,11 +2599,11 @@ def cmd_revise_outline(args: argparse.Namespace) -> Dict[str, object]:
 
 
 def cmd_brainstorm(args: argparse.Namespace) -> Dict[str, object]:
-    """执行 /脑洞建图：交互式脑洞引导 → 生成 idea_seed.md + plan_generation_prompt.md。"""
+    """Execution/cavity mapping: Interactive cavity guidance → generates idea_seed.md + plan_generation_prompt.md."""
     project_root = Path(args.project_root).expanduser().resolve()
     project_structure(project_root)
 
-    # Step 1: 初始化会话（已有会话则保留）
+    #Step 1: Initialize the session (preserve existing sessions)
     init_cmd = ["init", "--project-root", str(project_root)]
     if args.genre:
         init_cmd.extend(["--genre", args.genre])
@@ -2625,7 +2619,7 @@ def cmd_brainstorm(args: argparse.Namespace) -> Dict[str, object]:
             "init_result": i_payload if i_payload is not None else {"stdout": i_out},
         }
 
-    # Step 2: 如果提供了 genre/idea，预填第1轮答案（使用 fallback 模式）
+    #Step 2: If genre/idea is provided, pre-fill round 1 answers (use fallback mode)
     c_payload: Optional[Dict[str, object]] = None
     if args.genre or args.idea:
         seed_answers: Dict[str, str] = {}
@@ -2643,20 +2637,20 @@ def cmd_brainstorm(args: argparse.Namespace) -> Dict[str, object]:
                 "--use-fallback",
             ],
         )
-        # 推进到下一轮，让 generate 可以生成产出物
+        #Advance to the next round so that generate can generate the product
         if c_code == 0:
             run_python(
                 SCRIPT_DIR / "interactive_ideation_engine.py",
                 ["advance", "--project-root", str(project_root)],
             )
 
-    # Step 3: 尝试生成 idea_seed.md（需要至少1轮答案；无答案时优雅降级返回引导问题）
+    #Step 3: Try to generate idea_seed.md (requires at least 1 round of answers; gracefully demote back to guided question when no answer)
     g_code, _g_out, _g_err, g_payload = run_python(
         SCRIPT_DIR / "interactive_ideation_engine.py",
         ["generate", "--project-root", str(project_root)],
     )
 
-    # generate 因答案不足失败时：返回 ok=True 并附带引导问题，让用户继续填写
+    #when generate fails due to insufficient answers: return ok = True with a guided question for the user to continue filling out
     generate_succeeded = g_code == 0 and isinstance(g_payload, dict) and g_payload.get("ok")
     if not generate_succeeded:
         prompts_for_user = (
@@ -2666,7 +2660,7 @@ def cmd_brainstorm(args: argparse.Namespace) -> Dict[str, object]:
             i_payload.get("fallback_options", {}) if isinstance(i_payload, dict) else {}
         )
         return {
-            "ok": True,  # 会话已初始化，只是需要更多输入
+            "ok": True,  #Session initialized, just more input needed
             "command": "brainstorm",
             "project_root": str(project_root),
             "session_started": True,
@@ -2676,8 +2670,8 @@ def cmd_brainstorm(args: argparse.Namespace) -> Dict[str, object]:
             "init_result": i_payload,
             "generate_result": g_payload,
             "next_step": (
-                "脑洞引导会话已初始化。请逐轮回答以下问题（或使用 collect 子命令收集答案），"
-                "完成后执行 generate 生成 idea_seed.md。"
+                "Brainhole boot session has been initialized.Please answer the following questions round by round (or use the collect subcommand to collect answers), "
+                "Execute generate generate idea_seed.md when done."
             ),
         }
 
@@ -2757,13 +2751,13 @@ def parse_args() -> argparse.Namespace:
     p_cont.add_argument("--idempotent-cache", dest="idempotent_cache", action="store_true", default=True)
     p_cont.add_argument("--no-idempotent-cache", dest="idempotent_cache", action="store_false")
     p_cont.add_argument("--lock-timeout-sec", type=int, default=1800)
-    p_cont.add_argument("--min-chars", type=int, default=2500)  # 从1200提升至2500
-    p_cont.add_argument("--min-paragraphs", type=int, default=8)  # 从6提升至8
+    p_cont.add_argument("--min-chars", type=int, default=2500)  #Increased from 1200 to 2500
+    p_cont.add_argument("--min-paragraphs", type=int, default=8)  #Increased from 6 to 8
     p_cont.add_argument(
         "--pacing-mode", choices=["fast", "standard", "immersive"], default="standard",
         help=(
-            "章节节奏模式。fast=2000字/宽松约束，standard=2500字/均衡，"
-            "immersive=4500字/强制沉浸展开。影响 Beat 扩写硬约束强度和最低章节字数。"
+            "Chapter rhythm mode. fast = 2000 words/loose constraint, standard = 2500 words/equilibrium, "
+            "immersive = 4500 words/mandatory immersion expansion.Affects Beat Extended Hard Constraint strength and minimum number of chapter words."
         ),
     )
     p_cont.add_argument("--min-dialogue-ratio", type=float, default=0.03)

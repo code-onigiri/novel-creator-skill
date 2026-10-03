@@ -1,14 +1,14 @@
-## 风格档案：{{profile_name}}
-- 来源样章：
-- 题材匹配：
-- 叙述视角：
-- 平均句长：
-- 对话占比：
-- 节奏特征：
-- 高频语气：
-- 禁忌项：
+## Style Profile: {{profile_name}}
+- Source Sample Chapter:
+- Genre Match:
+- Narrative POV:
+- Average Sentence Length:
+- Dialogue Ratio:
+- Rhythm Characteristics:
+- High-Frequency Tone:
+- Forbidden Items:
 
-### 可复用写作动作
+### Reusable Writing Actions
 1. 
 2. 
 3. 

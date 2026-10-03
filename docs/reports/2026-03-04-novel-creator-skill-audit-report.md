@@ -1,41 +1,41 @@
-# Novel Creator Skill 审计报告
+# Novel Creator Skill Audit Report
 
-- 审计日期: 2026-03-04
-- 审计对象: `leenbj/novel-creator-skill`
-- 本地路径: `/Users/ethan/Desktop/小说/novel-creator-skill`
-- 审计基线提交: `6dcbab3`
-- 审计框架:
-  - `code-review-expert`（工程代码审计）
-  - `skill-forge`（技能工程质量审计）
-- 审计结论: `REQUEST_CHANGES`
-
----
-
-## 1. 执行摘要
-
-本次审计发现该仓库存在阻塞级问题（P0），导致核心命令链路在默认环境下无法稳定执行：
-
-1. `one-click` 流程因 `performance.py` 的 `Any` 未导入触发运行时错误。
-2. `content_expansion_engine.py` 存在语法错误，导致相关模块与测试不可用。
-
-同时存在高优先级工程问题：
-
-1. 技能元数据版本与文档版本漂移（`v8.0` vs `7.2.0`）。
-2. `SKILL.md` 引用不存在文档 `references/tutorials.md`。
-3. 安装脚本在 `--force` + 自定义 `--dest` 场景缺乏危险路径保护。
-
-从 `skill-forge` 标准看：该 skill “结构合法且可触发”，但未达到“高质量技能”标准（缺 Iron Law、缺可勾选 checklist、引用失配、测试健康度不足）。
+- Audit Date: 2026-03-04
+- Audit Subject: `leenbj/novel-creator-skill`
+- Local Path: `/Users/ethan/Desktop/Novel/novel-creator-skill`
+- Audit Baseline Commit: `6dcbab3`
+- Audit Framework:
+  - `code-review-expert` (engineering code audit)
+  - `skill-forge` (skill engineering quality audit)
+- Audit Conclusion: `REQUEST_CHANGES`
 
 ---
 
-## 2. 审计范围与方法
+## 1. Executive Summary
 
-### 2.1 范围
+This audit identified blocking issues (P0) in this repository that cause the core command chain to fail to execute stably in the default environment:
 
-- 仓库总文件: 79
+1. The `one-click` flow fails at runtime due to `Any` not being imported in `performance.py`.
+2. `content_expansion_engine.py` has a syntax error, causing the related module and tests to be unusable.
+
+There are also high-priority engineering issues:
+
+1. Skill metadata version drift from documentation version (`v8.0` vs `7.2.0`).
+2. `SKILL.md` references a non-existent document `references/tutorials.md`.
+3. The installation script lacks dangerous path protection in the `--force` + custom `--dest` scenario.
+
+From a `skill-forge` standard perspective: the skill is "structurally valid and triggerable" but does not meet the "high-quality skill" standard (missing Iron Law, missing checkable checklist, broken references, insufficient test health).
+
+---
+
+## 2. Audit Scope and Methodology
+
+### 2.1 Scope
+
+- Total files in repository: 79
 - `scripts/`: 23
 - `references/`: 7
-- 关键入口:
+- Key entry points:
   - `SKILL.md`
   - `scripts/novel_flow_executor.py`
   - `scripts/chapter_gate_check.py`
@@ -43,237 +43,237 @@
   - `scripts/novel_chapter_writer.py`
   - `scripts/install-portable-skill.sh`
 
-### 2.2 方法
+### 2.2 Methodology
 
-- 静态检查:
-  - 结构与元数据一致性检查
-  - 安全与可靠性扫描（路径、子进程、异常处理、数据写入）
-  - 规则合规检查（`skill-forge`）
-- 动态验证:
-  - 运行回归测试
-  - 运行 `one-click` 关键链路
-  - Python 语法编译检查
+- Static checks:
+  - Structure and metadata consistency check
+  - Security and reliability scan (paths, subprocesses, exception handling, data writes)
+  - Rule compliance check (`skill-forge`)
+- Dynamic validation:
+  - Run regression tests
+  - Run `one-click` critical path
+  - Python syntax compilation check
 
 ---
 
-## 3. 关键验证结果（证据）
+## 3. Key Verification Results (Evidence)
 
-### 3.1 测试结果
+### 3.1 Test Results
 
 1. `PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_novel_flow_executor.py`
-   - 结果: 6 项测试，失败 5 项。
+   - Result: 6 test items, 5 failed.
 2. `python3 -m unittest discover -s scripts/tests -p 'test_*.py'`
-   - 结果: 41 项测试，`1 fail + 4 error`。
+   - Result: 41 test items, `1 fail + 4 error`.
 
-### 3.2 编译结果
+### 3.2 Compilation Results
 
 1. `PYTHONPYCACHEPREFIX=/tmp/pycache python3 -m py_compile scripts/*.py`
-   - 结果: `scripts/content_expansion_engine.py` 语法错误（行 235）。
+   - Result: `scripts/content_expansion_engine.py` has a syntax error (line 235).
 
-### 3.3 关键命令链路
+### 3.3 Critical Command Chain
 
 1. `python3 scripts/novel_flow_executor.py one-click ...`
-   - 返回 `ok: false`
-   - `index_result.stderr` 报错: `NameError: name 'Any' is not defined`
-   - 根因定位: `scripts/performance.py` 使用 `Any` 但未导入。
+   - Returns `ok: false`
+   - `index_result.stderr` error: `NameError: name 'Any' is not defined`
+   - Root cause: `scripts/performance.py` uses `Any` without importing it.
 
 ---
 
-## 4. 分级问题清单
+## 4. Tiered Issue List
 
 ## P0 - Critical
 
-### 4.1 核心流程启动失败（`one-click` 默认不可用）
+### 4.1 Core Flow Startup Failure (`one-click` unavailable by default)
 
-- 位置:
+- Location:
   - `scripts/performance.py:15`
   - `scripts/performance.py:251`
   - `scripts/novel_flow_executor.py:1241`
-- 问题描述:
-  - `SimpleCache` 类型注解使用 `Any`，但 `typing` 未导入该符号，触发 `NameError`。
-- 影响:
-  - 新项目初始化流程失败，阻断主产品价值路径。
-- 建议修复:
-  - 在 `performance.py` 中补充 `Any` 导入。
-  - 增加 `one-click` smoke test 作为发布前门禁。
+- Problem:
+  - `SimpleCache` type annotation uses `Any`, but `typing` does not import this symbol, causing `NameError`.
+- Impact:
+  - New project initialization flow fails, blocking the main product value path.
+- Recommended Fix:
+  - Add `Any` import to `performance.py`.
+  - Add `one-click` smoke test as a pre-release gate.
 
-### 4.2 内容扩充模块语法错误
+### 4.2 Content Expansion Module Syntax Error
 
-- 位置:
+- Location:
   - `scripts/content_expansion_engine.py:235`
-- 问题描述:
-  - f-string 内混用单双引号导致语法错误。
-- 影响:
-  - 模块不可导入，依赖测试与功能不可执行。
-- 建议修复:
-  - 修正字符串模板引号结构。
-  - 在 CI 增加 `py_compile` 或 `compileall` 作为语法门禁。
+- Problem:
+  - Mixing single and double quotes inside an f-string causes a syntax error.
+- Impact:
+  - Module cannot be imported; dependent tests and features are non-functional.
+- Recommended Fix:
+  - Fix the string template quote structure.
+  - Add `py_compile` or `compileall` as a syntax gate in CI.
 
 ## P1 - High
 
-### 4.3 版本元数据漂移
+### 4.3 Version Metadata Drift
 
-- 位置:
-  - `README.md:1`（宣称 v8.0）
-  - `novel-creator.json:5`（`"version": "7.2.0"`）
-- 影响:
-  - 多工具安装时能力认知和行为可能不一致。
-- 建议修复:
-  - 建立单一版本源（例如 `VERSION` 文件），打包/发布自动注入。
+- Location:
+  - `README.md:1` (claims v8.0)
+  - `novel-creator.json:5` (`"version": "7.2.0"`)
+- Impact:
+  - Multiple tool installations may have inconsistent capability understanding and behavior.
+- Recommended Fix:
+  - Establish a single version source (e.g., `VERSION` file) with automatic injection during packaging/publishing.
 
-### 4.4 文档断链（引用不存在文件）
+### 4.4 Broken Documentation Link (References Nonexistent File)
 
-- 位置:
+- Location:
   - `SKILL.md:49`
   - `SKILL.md:106`
-- 问题描述:
-  - 引用了 `references/tutorials.md`，仓库中不存在该文件。
-- 影响:
-  - 按技能文档执行会中断。
-- 建议修复:
-  - 补齐文档或改为现有文档路径。
+- Problem:
+  - References `references/tutorials.md`, which does not exist in the repository.
+- Impact:
+  - Following the skill documentation will be interrupted.
+- Recommended Fix:
+  - Either create the missing document or update to an existing document path.
 
-### 4.5 安装脚本存在高破坏误操作风险
+### 4.5 Installation Script Has High Risk of Destructive Misoperation
 
-- 位置:
+- Location:
   - `scripts/install-portable-skill.sh:79`
-- 问题描述:
-  - `--force` 且 `--dest` 自定义时直接 `rm -rf "$DEST"`，缺少关键路径保护。
-- 影响:
-  - 用户误传路径可能删除非目标目录。
-- 建议修复:
-  - 增加白名单根目录校验（仅允许 `~/.codex/skills` 等预期目录）。
-  - 显式禁止 `/`、`$HOME`、空路径、`.` 等危险目标。
+- Problem:
+  - With `--force` and a custom `--dest`, it directly does `rm -rf "$DEST"`, lacking critical path protection.
+- Impact:
+  - User accidentally passing a wrong path could delete non-target directories.
+- Recommended Fix:
+  - Add whitelist root directory validation (only allow expected directories like `~/.codex/skills`).
+  - Explicitly forbid dangerous targets like `/`, `$HOME`, empty path, `.`.
 
 ## P2 - Medium
 
-### 4.6 执行锁非原子，存在并发竞争窗口
+### 4.6 Execution Lock Is Non-Atomic, Exposing a Concurrency Race Window
 
-- 位置:
+- Location:
   - `scripts/novel_flow_executor.py:70`
-- 问题描述:
-  - 锁逻辑先检查再写入，存在 TOCTOU。
-- 影响:
-  - 高并发下可能双写、重复执行。
-- 建议修复:
-  - 使用原子文件创建（`O_CREAT|O_EXCL`）或平台文件锁。
+- Problem:
+  - Lock logic checks first then writes, creating a TOCTOU (time-of-check to time-of-use) vulnerability.
+- Impact:
+  - Under high concurrency, double writes and duplicate execution are possible.
+- Recommended Fix:
+  - Use atomic file creation (`O_CREAT|O_EXCL`) or platform file locking.
 
-### 4.7 重复安全检查代码
+### 4.7 Duplicate Safety Check Code
 
-- 位置:
+- Location:
   - `scripts/novel_flow_executor.py:926`
   - `scripts/novel_flow_executor.py:934`
-- 问题描述:
-  - 同一 `relative_to(project_root)` 检查块重复两次。
-- 影响:
-  - 维护成本上升，易出现修改不一致。
-- 建议修复:
-  - 合并为单函数 `validate_chapter_path()`。
+- Problem:
+  - The same `relative_to(project_root)` check block is duplicated twice.
+- Impact:
+  - Increased maintenance cost, prone to inconsistent modifications.
+- Recommended Fix:
+  - Merge into a single function `validate_chapter_path()`.
 
-### 4.8 门禁错误信息与测试预期不一致
+### 4.8 Gate Error Message Inconsistent with Test Expectations
 
-- 位置:
+- Location:
   - `scripts/chapter_gate_check.py:81`
   - `scripts/tests/test_p01_duplicate_detection.py:308`
-- 问题描述:
-  - `quality_report` 为 False 时提前返回泛化消息，丢失重复度细节。
-- 影响:
-  - 诊断效率低，测试失败。
-- 建议修复:
-  - 无论总体通过与否，都输出具体失败项。
+- Problem:
+  - When `quality_report` is False, it returns early with a generic message, losing duplicate detail.
+- Impact:
+  - Low diagnostic efficiency, test failure.
+- Recommended Fix:
+  - Output specific failure items regardless of overall pass/fail status.
 
-### 4.9 多处吞异常导致静默失败
+### 4.9 Swallowed Exceptions Causing Silent Failures in Multiple Places
 
-- 位置示例:
+- Example Locations:
   - `scripts/long_term_context_manager.py:168`
   - `scripts/long_term_context_manager.py:262`
-- 问题描述:
-  - `except Exception: pass/continue` 无日志。
-- 影响:
-  - 数据问题被隐藏，线上难排查。
-- 建议修复:
-  - 最低限度记录 warning（文件 + 异常信息）。
+- Problem:
+  - `except Exception: pass/continue` with no logging.
+- Impact:
+  - Data problems are hidden and difficult to troubleshoot in production.
+- Recommended Fix:
+  - At minimum, log a warning (file + exception message).
 
 ## P3 - Low
 
-### 4.10 技能目录冗余文档（与 skill-forge 精简原则冲突）
+### 4.10 Redundant Documentation in Skill Directory (Conflicts with skill-forge Minimalism)
 
-- 位置:
+- Location:
   - `README.md`
-- 问题描述:
-  - `skill-forge` 倾向技能包最小化，不建议附加人类说明文档。
-- 影响:
-  - 非功能阻塞，主要是维护与一致性问题。
-- 建议修复:
-  - 保留必要资料到 `SKILL.md/references`，精简分发包。
+- Problem:
+  - `skill-forge` favors minimal skill packages and does not recommend additional human-readable documentation.
+- Impact:
+  - Not a functional block; mainly a maintenance and consistency concern.
+- Recommended Fix:
+  - Keep essential materials in `SKILL.md/references`, streamline the distribution package.
 
 ---
 
-## 5. Skill-Forge 质量审计
+## 5. Skill-Forge Quality Audit
 
-## 5.1 通过项
+## 5.1 Passing Items
 
-1. `SKILL.md` 体量合规（162 行，<500）。
-2. Frontmatter 基本合法（`quick_validate.py` 通过）。
-3. 描述字段具有中文高频触发词覆盖。
-4. references 采用按需加载思路。
+1. `SKILL.md` size is compliant (162 lines, <500).
+2. Frontmatter is basically valid (`quick_validate.py` passed).
+3. Description field covers Chinese high-frequency trigger words.
+4. References use an on-demand loading approach.
 
-## 5.2 不通过项（高质量标准）
+## 5.2 Failing Items (High-Quality Standard)
 
-1. 缺少 Iron Law（硬约束）。
-2. 缺少“可勾选 checklist + ⚠️/⛔”工作流结构。
-3. 存在引用失配（`tutorials.md`）。
-4. “脚本可执行”与“测试健康”状态不满足高质量要求。
-5. 技能包冗余文档不符合极简打包建议。
+1. Missing Iron Law (hard constraint).
+2. Missing "checkable checklist + ⚠️/⛔" workflow structure.
+3. Broken reference (`tutorials.md`).
+4. Scripts executable and test health do not meet high-quality requirements.
+5. Skill package redundant documentation does not comply with the minimalist packaging recommendation.
 
-## 5.3 质量结论
+## 5.3 Quality Conclusion
 
-- 当前级别: “可用但未达高质量”
-- 建议目标: 修复全部 P0/P1 后，再进行 skill 结构重构与二次验收。
+- Current Level: "Usable but not high-quality"
+- Recommended Target: Fix all P0/P1 issues first, then perform skill structure refactoring and re-verification.
 
 ---
 
-## 6. 修复路线图（建议）
+## 6. Recommended Fix Roadmap
 
-### 阶段 A（阻塞修复，1 天内）
+### Phase A (Blocking Fixes, within 1 day)
 
-1. 修复 `performance.py` 的 `Any` 导入问题。
-2. 修复 `content_expansion_engine.py` 语法错误。
-3. 让以下检查全部通过:
+1. Fix `performance.py` `Any` import issue.
+2. Fix `content_expansion_engine.py` syntax error.
+3. Get all of the following checks to pass:
    - `python3 -m py_compile scripts/*.py`
    - `python3 scripts/test_novel_flow_executor.py`
 
-### 阶段 B（高风险治理，1-2 天）
+### Phase B (High-Risk Governance, 1-2 days)
 
-1. 安装脚本增加危险路径保护。
-2. 统一版本号来源并同步 `README/SKILL/json`。
-3. 修复文档断链。
+1. Add dangerous path protection to the installation script.
+2. Unify version number source and sync `README/SKILL/json`.
+3. Fix broken documentation links.
 
-### 阶段 C（质量提升，2-3 天）
+### Phase C (Quality Improvement, 2-3 days)
 
-1. 执行锁改原子化。
-2. 移除重复安全检查。
-3. 异常处理补充日志与上下文。
-4. 门禁失败消息细化并与测试对齐。
-5. `SKILL.md` 引入 Iron Law + checklist 结构。
-
----
-
-## 7. 验收标准（DoD）
-
-满足以下条件才可判定通过：
-
-1. `one-click` 在本地默认参数返回 `ok: true`。
-2. `py_compile` 全脚本通过。
-3. 两组测试全部通过或有明确、可接受的跳过说明。
-4. `SKILL.md` 不再引用不存在文件。
-5. 安装脚本对危险路径具备硬防护。
-6. 版本号在 `README/SKILL/json` 三处一致。
-7. `skill-forge` 必选结构项（Iron Law、Checklist）补齐。
+1. Make execution lock atomic.
+2. Remove duplicate safety check.
+3. Add logging and context to exception handling.
+4. Refine gate failure messages and align with tests.
+5. Add Iron Law + checklist structure to `SKILL.md`.
 
 ---
 
-## 8. 附录：已执行命令（摘要）
+## 7. Acceptance Criteria (DoD)
+
+Pass the following conditions to be considered accepted:
+
+1. `one-click` returns `ok: true` with default local parameters.
+2. `py_compile` passes for all scripts.
+3. Both test groups all pass or have clear, acceptable skip explanations.
+4. `SKILL.md` no longer references non-existent files.
+5. Installation script has hard protection for dangerous paths.
+6. Version numbers consistent across `README/SKILL/json`.
+7. Required `skill-forge` structural items (Iron Law, Checklist) are completed.
+
+---
+
+## 8. Appendix: Executed Commands (Summary)
 
 ```bash
 git status -sb
@@ -286,7 +286,7 @@ python3 /Users/ethan/.agents/skills/skill-forge/scripts/quick_validate.py .
 
 ---
 
-## 9. 审计结论
+## 9. Audit Conclusion
 
-当前版本不建议直接作为“稳定生产 skill”发布。  
-建议先完成 P0/P1 修复，再执行一次回归审计和打包验收。
+The current version is not recommended for direct release as a "stable production skill."
+It is recommended to complete P0/P1 fixes first, then run a regression audit and packaging verification.

@@ -1,5 +1,5 @@
-# 下一步写作任务
+# Next Writing Task
 
-1. 先执行：`/继续写`
-2. 当前建议章节：`第1章-开篇待写.md`
-3. 当前剧情输入：主角在旧港区发现失踪名单
+1. First execute: `/Continue Writing`
+2. Currently suggested chapter: `Chapter 1 - Opening To Be Written.md`
+3. Current plot input: Protagonist discovers a missing persons list in the old port district

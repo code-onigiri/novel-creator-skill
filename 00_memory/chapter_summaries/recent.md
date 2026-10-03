@@ -1,20 +1,20 @@
-# 最近章节详细摘要（L1）
+# Recent Chapter Detailed Summaries (L1)
 
-> 保留最近10章的详细摘要。每章300-500字。
-> 当超过10章时，最早的章节压缩为L2移入 mid_term.md。
+> Keep detailed summaries of the last 10 chapters. 300-500 words per chapter.
+> When exceeding 10 chapters, compress the earliest chapters to L2 and move to mid_term.md.
 
-<!-- 每章摘要格式如下：
+## Summary Format Per Chapter Is As Follows:
 
-## 第XXX章：[章节标题]
-- **核心事件**：[一句话描述本章最重要的事]
-- **人物变化**：[哪些角色状态发生了变化]
-- **新增设定**：[本章揭示的新信息]
-- **伏笔**：[新埋设/回收的伏笔]
-- **情感基调**：[本章的情绪走向]
-- **承上**：[与上章的衔接点]
-- **启下**：[为下章铺垫的内容]
-- **关键对话/台词**：[值得记住的对话]
+## Chapter XXX: [Chapter Title]
+- **Core Event**: [Describe the most important thing in this chapter in one sentence]
+- **Character Changes**: [Which character states have changed]
+- **New Settings**: [New information revealed in this chapter]
+- **Foreshadowing**: [Newly planted/recovered foreshadowing]
+- **Emotional Tone**: [Emotional trajectory of this chapter]
+- **Bridging from Previous**: [Connection point with the previous chapter]
+- **Bridging to Next**: [Content that sets up the next chapter]
+- **Key Dialogue/Lines**: [Memorable dialogue]
 
 -->
 
-（尚未开始写作）
+(Writing has not yet started)

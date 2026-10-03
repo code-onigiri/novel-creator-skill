@@ -1,73 +1,73 @@
-# 跨工具安装教程
+# Cross-Tool Installation Tutorial
 
-本技能支持以下工具的一键安装：
+This skill supports one-click installation for the following tools:
 - Codex
 - Claude Code
 - OpenCode
 - Gemini CLI
 - Antigravity
 
-统一安装脚本：`scripts/install-portable-skill.sh`
+Unified installation script: `scripts/install-portable-skill.sh`
 
 ## 1. Codex
 ```bash
 bash scripts/install-portable-skill.sh --tool codex --force
 ```
-默认安装到：`~/.codex/skills/novel-claude-ai`
+Default installation to: `~/.codex/skills/novel-claude-ai`
 
 ## 2. Claude Code
 ```bash
 bash scripts/install-portable-skill.sh --tool claude-code --force
 ```
-默认安装到：`~/.claude/skills/novel-claude-ai`
+Default installation to: `~/.claude/skills/novel-claude-ai`
 
 ## 3. OpenCode
 ```bash
 bash scripts/install-portable-skill.sh --tool opencode --force
 ```
-默认安装到：`~/.opencode/skills/novel-claude-ai`
+Default installation to: `~/.opencode/skills/novel-claude-ai`
 
 ## 4. Gemini CLI
 ```bash
 bash scripts/install-portable-skill.sh --tool gemini-cli --force
 ```
-默认安装到：`~/.gemini/skills/novel-claude-ai`
+Default installation to: `~/.gemini/skills/novel-claude-ai`
 
 ## 5. Antigravity
 ```bash
 bash scripts/install-portable-skill.sh --tool antigravity --force
 ```
-默认安装到：`~/.antigravity/skills/novel-claude-ai`
+Default installation to: `~/.antigravity/skills/novel-claude-ai`
 
-## 自定义目录
+## Custom Directory
 ```bash
-bash scripts/install-portable-skill.sh --tool <tool> --dest <目标目录> --force
+bash scripts/install-portable-skill.sh --tool <tool> --dest <target directory> --force
 ```
 
-## 安装后检查
-确认以下文件存在：
+## Post-Installation Check
+Confirm the following files exist:
 - `SKILL.md`
 - `novel-creator.md`
 - `novel-creator.json`
-- 对应工具入口文件（如 `CLAUDE.md` / `GEMINI.md` / `OPENCODE.md` / `ANTIGRAVITY.md`）
+- Corresponding tool entry files (such as `CLAUDE.md` / `GEMINI.md` / `OPENCODE.md` / `ANTIGRAVITY.md`)
 - `TOOL_COMPAT.json`
 
-推荐写作链路（跨工具一致）：
-1. `/新手模式 开启`
-2. `/一键开书`
-3. `/继续写`
-4. `/修复本章`（仅门禁失败时）
+Recommended Writing Chain (Cross-Tool Consistent):
+1. `/beginner-mode on`
+2. `/one-click-novel-init`
+3. `/continue-write`
+4. `/repair-chapter` (only when gate check fails)
 
-高级链路（可选）：
-1. `/剧情检索`
-2. `/写作`
-3. `/更新记忆`
-4. `/检查一致性`
-5. `/风格校准`
-6. `/校稿`
-7. `/门禁检查`
-8. `/更新剧情索引`
+Advanced Chain (Optional):
+1. `/plot-retrieval`
+2. `/writing`
+3. `/update-memory`
+4. `/check-consistency`
+5. `/style-calibration`
+6. `/copyedit`
+7. `/gate-check`
+8. `/update-plot-index`
 
-真实执行器（可直接在项目目录运行）：
-- `python3 scripts/novel_flow_executor.py one-click --project-root <项目目录> --title <书名> --genre <题材> --idea <剧情种子>`
-- `python3 scripts/novel_flow_executor.py continue-write --project-root <项目目录> --query "<新剧情>"`
+Real Executors (can be run directly in the project directory):
+- `python3 scripts/novel_flow_executor.py one-click --project-root <project directory> --title <book title> --genre <genre> --idea <plot seed>`
+- `python3 scripts/novel_flow_executor.py continue-write --project-root <project directory> --query "<new plot>"`

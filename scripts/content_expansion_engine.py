@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Content Expansion Engine - 智能内容扩充引擎
+"""Content Expansion Engine - Intelligent Content Expansion Engine
 
-提供真正的文本扩展功能，而非简单的指令追加。
-通过多种扩充策略（场景、对话、心理、动作、过渡）实现内容的智能扩展。
+Provides true text expansion functionality, not simple instruction appending.
+Achieves intelligent content expansion through multiple expansion strategies (scene, dialogue, psychology, action, transition).
 
-作者: Claude Code
-版本: 1.0.0
-日期: 2025-03-02
+Author: Claude Code
+Version: 1.0.0
+Date: 2025-03-02
 """
 
 import re
@@ -21,24 +21,24 @@ QUOTE_CAPTURE_PATTERN = r'[“"]([^”"]+)[”"]'
 
 @dataclass
 class ExpansionContext:
-    """扩充上下文"""
+    """Expansion Context"""
     chapter_no: int
-    characters: Dict[str, Dict]  # 角色状态
-    plot_line: str  # 当前情节线
-    previous_ending: str  # 上一章结尾
-    scene_setting: str  # 场景设定
+    characters: Dict[str, Dict]  # Character states
+    plot_line: str  # Current plot thread
+    previous_ending: str  # Previous chapter ending
+    scene_setting: str  # Scene setting
 
 
 @dataclass
 class ExpansionStrategy:
-    """扩充策略"""
+    """Expansion Strategy"""
     name: str
     applies_to: Callable[[str], bool]
     expand: Callable[[str, int, ExpansionContext], str]
 
 
 class ContentExpansionEngine:
-    """内容扩充引擎主类"""
+    """Main class for content expansion engine"""
     
     def __init__(self, config: Optional[Dict] = None):
         self.config = config or {}
@@ -46,7 +46,7 @@ class ContentExpansionEngine:
         self._load_template_library()
     
     def _init_strategies(self) -> List[ExpansionStrategy]:
-        """初始化扩充策略集合"""
+        """Initializes the set of expansion strategies"""
         return [
             ExpansionStrategy(
                 name="scene_expansion",
@@ -77,15 +77,15 @@ class ContentExpansionEngine:
     
     def expand_content(self, text: str, target_chars: int, context: ExpansionContext) -> str:
         """
-        扩充内容至目标字数
+        Expands content to target character count
         
         Args:
-            text: 原始文本
-            target_chars: 目标字数
-            context: 扩充上下文
+            text: Original text
+            target_chars: Target character count
+            context: Expansion context
         
         Returns:
-            扩充后的文本
+            Expanded text
         """
         current_chars = len(re.sub(r"\s+", "", text))
         if current_chars >= target_chars:
@@ -93,10 +93,10 @@ class ContentExpansionEngine:
         
         needed_chars = target_chars - current_chars
         
-        # 制定扩充计划
+        # Create expansion plan
         expansion_plan = self._create_expansion_plan(text, needed_chars, context)
         
-        # 执行扩充
+        # Execute expansion
         result = text
         for strategy_name, amount in expansion_plan:
             strategy = next((s for s in self.strategies if s.name == strategy_name), None)
@@ -107,18 +107,18 @@ class ContentExpansionEngine:
         return result
     
     def _create_expansion_plan(self, text: str, needed_chars: int, context: ExpansionContext) -> List[Tuple[str, int]]:
-        """制定扩充计划，智能分配各策略的扩充量"""
+        """Creates an expansion plan, intelligently allocating expansion amounts for each strategy"""
         plan = []
         remaining = needed_chars
         
-        # 根据文本分析和上下文决定优先级
+        # Decide priorities based on text analysis and context
         priorities = self._analyze_expansion_priorities(text, context)
         
         for strategy_name, priority in priorities:
             if remaining <= 0:
                 break
             
-            # 根据优先级分配扩充量
+            # Allocate expansion amount based on priority
             allocation = min(
                 remaining,
                 int(needed_chars * priority)
@@ -128,47 +128,47 @@ class ContentExpansionEngine:
                 plan.append((strategy_name, allocation))
                 remaining -= allocation
         
-        # 如果还有剩余，分配给最高优先级的策略
+        # If there's still remaining, allocate to the highest priority strategy
         if remaining > 0 and plan:
             plan[-1] = (plan[-1][0], plan[-1][1] + remaining)
         
         return plan
     
     def _analyze_expansion_priorities(self, text: str, context: ExpansionContext) -> List[Tuple[str, float]]:
-        """分析并返回各扩充策略的优先级（策略名，权重）"""
+        """Analyzes and returns priorities for each expansion strategy (strategy name, weight)"""
         priorities = []
         
-        # 场景扩充检查
+        # Scene expansion check
         scene_count = len(re.findall(r'场景|地点|时间|天色|环境', text))
         if scene_count < 3:
             priorities.append(("scene_expansion", 0.25))
         
-        # 对话丰富度检查
+        # Dialogue richness check
         dialogue_chars = sum(len(m.group(1)) for m in re.finditer(QUOTE_CAPTURE_PATTERN, text))
         text_chars = len(re.sub(r"\s+", "", text))
         dialogue_ratio = dialogue_chars / text_chars if text_chars else 0
         if dialogue_ratio < 0.2:
             priorities.append(("dialogue_enrichment", 0.20))
         
-        # 心理描写检查
+        # Psychological description check
         psych_markers = ['想', '觉得', '感觉', '意识到', '认为', '心中']
         psych_count = sum(text.count(m) for m in psych_markers)
         if psych_count < 5:
             priorities.append(("psychological_depth", 0.15))
         
-        # 动作细节检查
+        # Action detail check
         action_verbs = ['走', '跑', '跳', '打', '拿', '放', '看', '听', '站', '坐']
         action_count = sum(text.count(v) for v in action_verbs)
         if action_count < 20:
             priorities.append(("action_detail", 0.15))
         
-        # 过渡平滑度检查
+        # Transition smoothness check
         transitions = ['随后', '接着', '与此同时', '不久之后', '紧接着']
         trans_count = sum(text.count(t) for t in transitions)
         if trans_count < 3:
             priorities.append(("transition_smoothing", 0.10))
         
-        # 如果没有明显的优先级，平均分配
+        # If no clear priorities, distribute evenly
         if not priorities:
             return [
                 ("scene_expansion", 0.20),
@@ -178,23 +178,23 @@ class ContentExpansionEngine:
                 ("transition_smoothing", 0.10),
             ]
         
-        # 按权重排序
+        # Sort by weight
         priorities.sort(key=lambda x: x[1], reverse=True)
         return priorities
     
-    # 具体扩充策略实现
+    # Specific expansion strategy implementations
     
     def _needs_scene_expansion(self, text: str) -> bool:
-        """判断是否需要场景扩充"""
+        """Determines if scene expansion is needed"""
         scene_markers = ['场景', '地点', '时间', '天色', '环境', '氛围']
         scene_count = sum(1 for marker in scene_markers if marker in text)
         return scene_count < 3
-    
+
     def _expand_scenes(self, text: str, amount: int, context: ExpansionContext) -> str:
-        """场景扩充实现"""
+        """Scene expansion implementation"""
         expansion_parts = []
         
-        # 生成环境氛围描写
+        # Generate atmosphere descriptions
         atmosphere_templates = [
             f"天色{random.choice(['渐暗', '微明', '阴沉', '晴朗'])}，四周{random.choice(['寂静无声', '风声萧瑟', '人声鼎沸', '虫鸣鸟叫'])}。",
             f"空气中弥漫着{random.choice(['潮湿的泥土味', '淡淡的花香', '紧张的气氛', '硝烟的味道'])}。",
@@ -206,14 +206,14 @@ class ContentExpansionEngine:
         return "\n\n".join(expansion_parts)
     
     def _needs_dialogue(self, text: str) -> bool:
-        """判断是否需要对话扩充"""
+        """Determines if dialogue expansion is needed"""
         dialogue_chars = sum(len(m.group(1)) for m in re.finditer(QUOTE_CAPTURE_PATTERN, text))
         text_chars = len(re.sub(r"\s+", "", text))
         dialogue_ratio = dialogue_chars / text_chars if text_chars else 0
         return dialogue_ratio < 0.2
-    
+
     def _enrich_dialogue(self, text: str, amount: int, context: ExpansionContext) -> str:
-        """对话丰富化实现"""
+        """Dialogue enrichment implementation"""
         dialogue_templates = [
             f'"{random.choice(["你觉得呢？", "你怎么看？", "有什么想法？"])}"{random.choice(["他问道", "她说道", "有人插话"])}。',
             f'"{random.choice(["不太可能", "或许吧", "我觉得可行"])}，"{random.choice([" protagonist 摇了摇头", "对方沉吟道", "某人补充道"])}。',
@@ -224,13 +224,13 @@ class ContentExpansionEngine:
         return "\n\n".join(selected)
     
     def _needs_psychology(self, text: str) -> bool:
-        """判断是否需要心理描写扩充"""
+        """Determines if psychological description expansion is needed"""
         psych_markers = ['想', '觉得', '感觉', '意识到', '认为', '心中', '暗想', '思索', '犹豫', '决心']
         psych_count = sum(text.count(m) for m in psych_markers)
         return psych_count < 5
-    
+
     def _deepen_psychology(self, text: str, amount: int, context: ExpansionContext) -> str:
-        """心理描写深化实现"""
+        """Psychological description deepening implementation"""
         psych_templates = [
             f"{context.characters.get('protagonist', '他')}心中{random.choice(['暗自思忖', '反复盘算', '默默思索'])}：{random.choice(['这一步走得是否正确？', '接下来该如何应对？', '对方究竟有何目的？'])}。",
             f"{random.choice(['尽管表面上镇定自若', '虽然神色如常', '即便保持着微笑'])}，{context.characters.get('protagonist', '他')}的内心却{random.choice(['波涛汹涌', '思绪万千', '难以平静'])}。",
@@ -241,13 +241,13 @@ class ContentExpansionEngine:
         return "\n\n".join(selected)
     
     def _needs_action(self, text: str) -> bool:
-        """判断是否需要动作细节扩充"""
+        """Determines if action detail expansion is needed"""
         action_verbs = ['走', '跑', '跳', '打', '拿', '放', '看', '听', '站', '坐', '冲', '挥', '握', '拉']
         action_count = sum(text.count(v) for v in action_verbs)
         return action_count < 20
-    
+
     def _detail_actions(self, text: str, amount: int, context: ExpansionContext) -> str:
-        """动作细节化实现"""
+        """Action detail implementation"""
         action_templates = [
             f"{context.characters.get('protagonist', '他')}{random.choice(['缓缓', '猛地', '轻轻'])}地{random.choice(['站起身', '转过身', '抬起手', '迈出一步'])}，{random.choice(['动作干净利落', '姿态从容不迫', '神情专注认真'])}。",
             f"{random.choice(['只见', '但见', '就见'])}{context.characters.get('protagonist', '他')}{random.choice(['身形一闪', '脚步轻移', '手臂一挥'])}{random.choice(['，快如闪电', '，迅疾如风', '，如行云流水般'])}地{random.choice(['完成了这个动作', '化解了危机', '达成了目的'])}。",
@@ -258,13 +258,13 @@ class ContentExpansionEngine:
         return "\n\n".join(selected)
     
     def _needs_transitions(self, text: str) -> bool:
-        """判断是否需要过渡平滑化"""
+        """Determines if transition smoothing is needed"""
         transitions = ['随后', '接着', '与此同时', '不久之后', '紧接着', '然后', '这时']
         trans_count = sum(text.count(t) for t in transitions)
         return trans_count < 3
-    
+
     def _smooth_transitions(self, text: str, amount: int, context: ExpansionContext) -> str:
-        """过渡平滑化实现"""
+        """Transition smoothing implementation"""
         transition_templates = [
             f"{random.choice(['时间', '光阴', '岁月'])}在不知不觉中{random.choice(['流逝', '推移', '流转'])}，转眼间{random.choice(['已是数日过去', '已到了新的阶段', '情况又有了变化'])}。",
             f"{random.choice(['就在此时', '正当这时', '就在这个当口'])}，{random.choice(['意想不到的事情发生了', '局势突然发生了变化', '一个意外的转折出现了'])}。",
@@ -275,27 +275,27 @@ class ContentExpansionEngine:
         return "\n\n".join(selected)
     
     def _integrate_expansion(self, original: str, expansion: str) -> str:
-        """将扩充内容自然融入原文"""
+        """Naturally integrates expansion content into the original text"""
         if not expansion.strip():
             return original
         
-        # 在合适的段落之间插入扩充内容
+        # Insert expansion content at appropriate paragraph breaks
         paragraphs = original.split('\n\n')
         expansion_paras = expansion.split('\n\n')
         
-        # 找到合适的插入点（通常是场景转换处或对话结束后）
+        # Find suitable insertion points (usually at scene transitions or after dialogue)
         insert_points = []
         for i, para in enumerate(paragraphs):
             if any(marker in para for marker in ['。"', '？"', '！"', '……', '。\n']):
                 insert_points.append(i)
         
-        # 如果没有合适的插入点，在段落中间插入（单段也可插入）
+        # If no suitable insertion point found, insert in the middle of paragraphs (single paragraph can have insertion too)
         if not insert_points and paragraphs:
             insert_points = [len(paragraphs) // 2]
         if not paragraphs:
             return expansion
         
-        # 插入扩充段落
+        # Insert expansion paragraphs
         result = paragraphs[:]
         offset = 0
         for i, exp_para in enumerate(expansion_paras):
@@ -308,12 +308,12 @@ class ContentExpansionEngine:
         return '\n\n'.join(result)
     
     def _load_template_library(self):
-        """加载模板库（预留接口）"""
-        # 可以在这里加载外部模板文件
+        """Loads template library (reserved interface)"""
+        # External template files can be loaded here
         pass
 
 
-# 便捷函数
+# Convenience function
 def expand_chapter_content(
     text: str,
     target_chars: int,
@@ -322,17 +322,17 @@ def expand_chapter_content(
     config: Optional[Dict] = None
 ) -> str:
     """
-    便捷函数：扩充章节内容
+    Convenience function: Expands chapter content
     
     Args:
-        text: 原始文本
-        target_chars: 目标字数
-        chapter_no: 章节号
-        context: 上下文信息
-        config: 可选配置
+        text: Original text
+        target_chars: Target character count
+        chapter_no: Chapter number
+        context: Context information
+        config: Optional configuration
     
     Returns:
-        扩充后的文本
+        Expanded text
     """
     engine = ContentExpansionEngine(config)
     expansion_context = ExpansionContext(
@@ -345,19 +345,19 @@ def expand_chapter_content(
     return engine.expand_content(text, target_chars, expansion_context)
 
 
-# 测试代码
+# Test code
 if __name__ == "__main__":
-    # 简单测试
-    test_text = "这是一个测试文本。需要扩充内容。"
+    # Simple test
+    test_text = "This is a test text. Content needs to be expanded."
     context = {
-        'characters': {'protagonist': '张三'},
-        'plot_line': '测试情节',
-        'previous_ending': '上一章结尾',
-        'scene_setting': '测试场景',
+        'characters': {'protagonist': 'Zhang San'},
+        'plot_line': 'Test plot',
+        'previous_ending': 'Previous chapter ending',
+        'scene_setting': 'Test scene',
     }
     
     result = expand_chapter_content(test_text, 500, 1, context)
-    print(f"原始字数: {len(test_text)}")
-    print(f"扩充后字数: {len(result)}")
-    print("扩充结果预览:")
+    print(f"Original character count: {len(test_text)}")
+    print(f"Expanded character count: {len(result)}")
+    print("Expansion result preview:")
     print(result[:500] + "..." if len(result) > 500 else result)

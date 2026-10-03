@@ -1,33 +1,33 @@
-# 角色状态追踪器
+# Character State Tracker
 
-> 追踪所有角色的最新状态。写前读取涉及角色，写后更新变化。
+> Track the latest state of all characters. Read involved characters before writing, update changes after writing.
 
-## 主角：主角
-- 当前境界/实力：初阶
-- 当前位置：起始地点
-- 当前目标：明确主角核心目标
-- 持有物品/资源：暂无
-- 性格特征：待细化
-- 外貌特征：待细化
-- 关键关系：
-  - 与核心配角：待建立
-  - 与反派势力：待建立
-- 最近变化（最新3条）：
-  （尚未开始写作）
+## Protagonist: Protagonist
+- Current Realm/Power: Beginner
+- Current Location: Starting Location
+- Current Goal: Clarify the protagonist's core objective
+- Possessed Items/Resources: None for now
+- Personality Traits: To be refined
+- Appearance Traits: To be refined
+- Key Relationships:
+  - With Core Supporting Characters: To be established
+  - With Antagonist Faction: To be established
+- Recent Changes (Latest 3):
+  (Writing has not yet started)
 
-## 核心配角
+## Core Supporting Characters
 
-### 核心配角
-- 身份：待设定
-- 与主角关系：待设定
-- 当前状态：待设定
-- 性格特征：待细化
-- 最近出场：（尚未出场）
-- 最近变化：（无）
+### Core Supporting Characters
+- Identity: To be set
+- Relationship with Protagonist: To be set
+- Current State: To be set
+- Personality Traits: To be refined
+- Last Appearance: (Has not appeared yet)
+- Recent Changes: (None)
 
-<!-- 根据知识库中的人物设定继续添加 -->
+<!-- Continue adding based on character settings from the knowledge base -->
 
-## 已退场角色（存档）
-| 角色 | 退场章节 | 退场原因 | 是否可能回归 |
+## Retired Characters (Archived)
+| Character | Exit Chapter | Reason for Exit | Possible Return |
 |------|---------|---------|------------|
-<!-- 角色死亡、离开等情况记录于此 -->
+<!-- Record character death, departure, etc. here -->

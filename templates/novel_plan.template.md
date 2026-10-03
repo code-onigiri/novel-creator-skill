@@ -1,34 +1,34 @@
-# 小说主线计划
+# Novel Main Plot Plan
 
-> 本文件是长期记忆的核心，防止剧情偏离主线。每次写作前必读。
-> 修改规则：仅在用户明确同意后修改。
+> This file is the core of long-term memory, preventing the plot from deviating from the main storyline. Must be read before every writing session.
+> Modification Rule: Only modify with explicit user consent.
 
-## 核心设定（不可偏离）
-- 书名：{TITLE}
-- 类型：{GENRE}
-- 核心卖点（一句话）：{CORE_HOOK}
-- 预计总字数：{TARGET_WORDS}
-- 终极结局：{ENDING}
+## Core Settings (Do Not Deviate)
+- Title: {TITLE}
+- Genre: {GENRE}
+- Core Selling Point (One Sentence): {CORE_HOOK}
+- Estimated Total Word Count: {TARGET_WORDS}
+- Ultimate Ending: {ENDING}
 
-## 主线大纲
-- [ ] 第一卷：{VOL1_NAME} - {VOL1_EVENT} (第1-{VOL1_END}章)
-  - [ ] 第一幕：{ACT1_GOAL}
-  - [ ] 第二幕：{ACT2_CONFLICT}
-  - [ ] 第三幕：{ACT3_CLIMAX}
-- [ ] 第二卷：{VOL2_NAME} - {VOL2_EVENT} (第{VOL2_START}-{VOL2_END}章)
+## Main Plot Outline
+- [ ] Volume 1: {VOL1_NAME} - {VOL1_EVENT} (Chapter 1-{VOL1_END})
+  - [ ] Act 1: {ACT1_GOAL}
+  - [ ] Act 2: {ACT2_CONFLICT}
+  - [ ] Act 3: {ACT3_CLIMAX}
+- [ ] Volume 2: {VOL2_NAME} - {VOL2_EVENT} (Chapter {VOL2_START}-{VOL2_END})
   - [ ] ...
-<!-- 根据实际大纲继续添加 -->
+<!-- Continue adding based on actual outline -->
 
-## 核心人物弧线
-- 主角({PROTAGONIST})：{START_STATE} → {MID_TRANSFORM} → {FINAL_STATE}
-- {HEROINE}：{H_START} → {H_MID} → {H_FINAL}
-<!-- 根据实际角色继续添加 -->
+## Core Character Arcs
+- Protagonist({PROTAGONIST}): {START_STATE} → {MID_TRANSFORM} → {FINAL_STATE}
+- {HEROINE}: {H_START} → {H_MID} → {H_FINAL}
+<!-- Continue adding based on actual characters -->
 
-## 力量体系阶梯
+## Power System Ladder
 {POWER_LEVEL_1} → {POWER_LEVEL_2} → {POWER_LEVEL_3} → ... → {POWER_LEVEL_MAX}
 
-## 绝对规则（红线）
+## Absolute Rules (Red Lines)
 1. {RULE_1}
 2. {RULE_2}
 3. {RULE_3}
-<!-- 不可违反的设定，写作中如有新增请补充 -->
+<!-- Settings that must not be violated; add new ones as they arise during writing -->

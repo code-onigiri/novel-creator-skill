@@ -1,59 +1,115 @@
 {
   "id": "novel-claude-ai",
-  "name": "Novel Claude AI - 小说创作大师",
-  "description": "中文长篇小说全流程创作技能。当用户想写小说、创作故事、续写章节、构思剧情、搭建世界观、设计人物关系、提取写作风格、仿写其他小说时使用。覆盖从模糊想法到300万字成品的完整链路。",
+  "name": "Novel Claude AI - Novel Creation Master",
+  "description": "Full-lifecycle Chinese novel creation skill. Use when the user wants to write a novel, create a story, continue a chapter, brainstorm a plot, build a worldbuilding, design character relationships, extract writing style, or imitate another novel. Covers the complete chain from a vague idea to a 3-million-character finished work.",
   "version": "1.0.0",
   "activation": {
     "patterns": [
-      "/novel-analyze", "/novel-create",
-      "/一键开书", "/仿写", "/修复本章", "/继续写", "/新手模式",
-      "/伏笔状态", "/修改章节", "/写作", "/写全篇", "/完整流程",
-      "/建库", "/批量写作", "/拆书", "/时间线", "/更新记忆",
-      "/校稿", "/检查一致性", "/更新剧情索引", "/剧情检索",
-      "/检索记忆", "/续写", "/角色状态", "/门禁检查",
-      "/题材选风格", "/风格库检索", "/风格提取", "/风格校准",
-      "/风格迁移", "/评测基线", "/联网调研", "/一键写书",
-      "/脑洞建图", "/改纲续写", "/双审",
-      "小说创作", "拆书", "剧情检索", "百万字小说",
-      "模糊剧情思路", "仿写", "生成大纲", "世界观构建",
-      "写小说", "写故事", "续写", "写章节", "构思剧情",
-      "人物关系", "写作风格", "帮我写个故事", "小说的想法",
-      "故事大纲", "知识图谱", "脑洞"
+      "/novel-analyze",
+      "/novel-create",
+      "/one-click-start",
+      "/imitate",
+      "/fix-chapter",
+      "/continue-write",
+      "/beginner-mode",
+      "/foreshadow-status",
+      "/edit-chapter",
+      "/write",
+      "/write-full",
+      "/full-flow",
+      "/init-db",
+      "/batch-write",
+      "/disassemble",
+      "/timeline",
+      "/update-memory",
+      "/copyedit",
+      "/check-consistency",
+      "/update-plot-index",
+      "/plot-retrieve",
+      "/memory-retrieve",
+      "/resume",
+      "/character-status",
+      "/gate-check",
+      "/genre-style",
+      "/style-search",
+      "/style-extract",
+      "/style-calibrate",
+      "/style-transfer",
+      "/benchmark",
+      "/online-research",
+      "/auto-write",
+      "/brainstorm-map",
+      "/revise-outline",
+      "/dual-review",
+      "novel creation",
+      "disassemble a novel",
+      "plot retrieval",
+      "million-word novel",
+      "vague plot idea",
+      "imitate",
+      "generate an outline",
+      "worldbuilding",
+      "write a novel",
+      "write a story",
+      "continue writing",
+      "write a chapter",
+      "brainstorm a plot",
+      "character relationships",
+      "writing style",
+      "help me write a story",
+      "idea for a novel",
+      "story outline",
+      "knowledge graph",
+      "brainstorm"
     ],
     "triggers": [
-      "用户希望最简单上手流程",
-      "用户只有模糊剧情思路或一个灵感",
-      "用户提供样章并要求模仿风格",
-      "用户要求仿写或拆解小说",
-      "用户需要创作、续写或批量写作小说",
-      "用户需要修改章节或更新记忆",
-      "用户需要检查一致性或风格校准",
-      "用户需要门禁失败后的修复步骤",
-      "用户需要写前自动匹配相关章节上下文",
-      "用户需要评估流程性能",
-      "用户想搭建世界观或设计人物关系",
-      "用户想中途修改剧情大纲",
-      "用户想全自动写一本书",
-      "用户想提取或切换写作风格"
+      "User wants the simplest onboarding flow",
+      "User has only a vague plot idea or a single inspiration",
+      "User provides a sample chapter and requests style imitation",
+      "User wants to imitate or disassemble a novel",
+      "User needs to create, continue, or batch-write a novel",
+      "User needs to modify a chapter or update memory",
+      "User needs to check consistency or calibrate style",
+      "User needs fix steps after a gate failure",
+      "User needs pre-writing automatic matching of relevant chapter context",
+      "User needs to evaluate process performance",
+      "User wants to build a worldbuilding or design character relationships",
+      "User wants to modify the plot outline mid-stream",
+      "User wants to fully automatically write a book",
+      "User wants to extract or switch writing style"
     ]
   },
   "capability_matrix": {
     "implemented": [
-      "新手三命令", "五步质量门禁", "RAG剧情检索", "联网调研",
-      "风格提取与复用", "基线评测"
+      "Beginner Three Commands",
+      "Five-Step Quality Gate",
+      "RAG Plot Retrieval",
+      "Online Research",
+      "Style Extraction and Reuse",
+      "Baseline Evaluation"
     ],
     "partial": [
-      "全自动写书", "小说仿写"
+      "Full-Auto Novel Writing",
+      "Novel Imitation"
     ],
     "planned": [
-      "交互式脑洞引导", "知识图谱", "大纲锚点", "多步流水线",
-      "反向刹车", "事件冷却", "跨Agent审核", "中途改纲级联"
+      "Interactive Brainstorming",
+      "Knowledge Graph",
+      "Outline Anchors",
+      "Multi-Step Pipeline",
+      "Anti-Resolution Brake",
+      "Event Cooldown",
+      "Cross-Agent Review",
+      "Mid-Stream Outline Change Cascading"
     ]
   },
   "memory_system": {
-    "principle": "上下文窗口=内存（易失）；文件系统=磁盘（持久）",
+    "principle": "Context window = memory (volatile); File system = disk (persistent)",
     "smart_state": {
-      "mandatory_reads": ["00_memory/novel_plan.md", "00_memory/novel_state.md"],
+      "mandatory_reads": [
+        "00_memory/novel_plan.md",
+        "00_memory/novel_state.md"
+      ],
       "max_files_per_chapter": 4
     },
     "plot_retrieval": {
@@ -69,35 +125,59 @@
     "gate_artifacts": {
       "path": "04_editing/gate_artifacts/<chapter_id>/",
       "required_files": [
-        "memory_update.md", "consistency_report.md",
-        "style_calibration.md", "copyedit_report.md",
-        "publish_ready.md", "gate_result.json"
+        "memory_update.md",
+        "consistency_report.md",
+        "style_calibration.md",
+        "copyedit_report.md",
+        "publish_ready.md",
+        "gate_result.json"
       ],
       "verification_script": "scripts/chapter_gate_check.py"
     },
     "chapter_storage_policy": {
       "chapter_dir": "03_manuscript/",
-      "rule": "章节必须保存到 03_manuscript/*.md，禁止混入 02_knowledge_base/"
+      "rule": "Chapters must be saved to 03_manuscript/*.md; mixing into 02_knowledge_base/ is prohibited"
     }
   },
   "executor": {
     "script": "scripts/novel_flow_executor.py",
-    "one_click": "python3 scripts/novel_flow_executor.py one-click --project-root <项目目录> --title <书名> --genre <题材> --idea <剧情种子>",
-    "continue_write": "python3 scripts/novel_flow_executor.py continue-write --project-root <项目目录> --query \"<新剧情>\""
+    "one_click": "python3 scripts/novel_flow_executor.py one-click --project-root <project directory> --title <book title> --genre <genre> --idea <plot seed>",
+    "continue_write": "python3 scripts/novel_flow_executor.py continue-write --project-root <project directory> --query \"<new plot>\""
   },
   "workflow": {
-    "beginner_quickstart": ["/一键开书", "/继续写", "/修复本章"],
+    "beginner_quickstart": [
+      "/一键开书",
+      "/继续写",
+      "/修复本章"
+    ],
     "chapter_pipeline": [
-      "/剧情检索", "/写作", "/更新记忆", "/检查一致性",
-      "/风格校准", "/校稿", "/门禁检查", "/更新剧情索引"
+      "/剧情检索",
+      "/写作",
+      "/更新记忆",
+      "/检查一致性",
+      "/风格校准",
+      "/校稿",
+      "/门禁检查",
+      "/更新剧情索引"
     ],
     "planned_pipeline": [
-      "锚点配额检查", "Beat Sheet生成", "Beat扩写",
-      "章节合成", "门禁", "图谱回写", "跨Agent审核"
+      "Anchor Quota Check",
+      "Beat Sheet Generation",
+      "Beat Expansion",
+      "Chapter Synthesis",
+      "Gate Check",
+      "Graph Writeback",
+      "Cross-Agent Review"
     ]
   },
   "compatibility": {
-    "supported_tools": ["codex", "claude-code", "opencode", "gemini-cli", "antigravity"],
+    "supported_tools": [
+      "codex",
+      "claude-code",
+      "opencode",
+      "gemini-cli",
+      "antigravity"
+    ],
     "installer": "scripts/install-portable-skill.sh"
   }
 }

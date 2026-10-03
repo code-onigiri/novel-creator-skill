@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""集中配置管理模块
+"""Centralized Configuration Management Module
 
-管理所有硬编码的配置值，支持百万字级别小说的创作流程。
-所有配置可通过环境变量覆盖。
+Manages all hardcoded configuration values, supporting million-word-level novel creation workflows.
+All configurations can be overridden via environment variables.
 """
 
 import os
@@ -12,32 +12,32 @@ from typing import Dict, List, Set, Optional
 
 @dataclass
 class QualityConfig:
-    """质量检查配置"""
-    
-    # AI短语黑名单（去AI化检查）
+    """Quality check configuration"""
+
+    # AI phrase blacklist (de-AI detection)
     ai_phrase_blacklist: List[str] = field(default_factory=lambda: [
         "不禁", "仿佛", "映入眼帘", "心中暗道", "宛如",
         "似乎", "好像", "可能", "大概", "也许",
         "不由得", "不禁感到", "内心深处", "默默地",
     ])
     
-    # 占位章检测参数
+    # Placeholder chapter detection parameters
     max_stub_effective_chars: int = 800
     stub_marker: str = "<!-- NOVEL_FLOW_STUB -->"
     
-    # 质量下限检查
+    # Quality threshold checks
     min_chars: int = 1200
     min_paragraphs: int = 6
     min_dialogue_ratio: float = 0.03
     
-    # 发布判定关键词
+    # Publish judgment keywords
     publish_keywords: List[str] = field(default_factory=lambda: [
         "可发布", "通过", "PASS", "审核通过", "质量合格"
     ])
     
     @classmethod
     def from_env(cls) -> "QualityConfig":
-        """从环境变量加载配置"""
+        """Load configuration from environment variables"""
         config = cls()
         
         if "QUALITY_MIN_CHARS" in os.environ:
@@ -54,9 +54,9 @@ class QualityConfig:
 
 @dataclass
 class RetrievalConfig:
-    """RAG检索配置"""
-    
-    # 停用词表
+    """RAG Retrieval Configuration"""
+
+    # Stopwords list
     stopwords: Set[str] = field(default_factory=lambda: {
         "我们", "你们", "他们", "她们", "它们", "这个", "那个", "一种", "已经", "因为", "所以", "如果",
         "但是", "然后", "自己", "不是", "不会", "就是", "还是", "一个", "一些", "可以", "时候", "什么",
@@ -64,32 +64,32 @@ class RetrievalConfig:
         "这里", "那里", "这些", "那些", "这样", "那样", "如此", "非常", "十分", "相当", "真的",
     })
     
-    # 检索触发关键词
+    # Retrieval trigger keywords
     trigger_keywords: Set[str] = field(default_factory=lambda: {
         "冲突", "反转", "伏笔", "回收", "真相", "背叛", "联盟", "新角色", "时间线", "回忆",
         "穿越", "死亡", "复活", "势力", "升级", "突破", "决战", "危机", "转折", "悬念",
         "揭露", "身份", "秘密", "阴谋", "复仇", "救赎", "牺牲", "传承", "觉醒", "封印",
     })
     
-    # 轻场景关键词（用于跳过检索）
+    # Light scene keywords (used to skip retrieval)
     light_scene_keywords: Set[str] = field(default_factory=lambda: {
         "日常", "过渡", "环境描写", "吃饭", "赶路", "休整", "闲聊", "铺垫",
         "修炼", "冥想", "休息", "准备", "整理", "收拾", "散步", "观光",
     })
     
-    # 检索参数
+    # Retrieval parameters
     candidate_k: int = 12  # 粗筛候选数
     top_k: int = 4  # 精排返回数
     passage_max_chars: int = 220  # 片段最大字符数
     passages_per_chapter: int = 2  # 每章提取片段数
     
-    # 缓存配置
+    # Cache configuration
     cache_max_entries: int = 200
     cache_ttl_seconds: int = 3600  # 1小时过期
     
     @classmethod
     def from_env(cls) -> "RetrievalConfig":
-        """从环境变量加载配置"""
+        """Load configuration from environment variables"""
         config = cls()
         
         if "RETRIEVAL_CANDIDATE_K" in os.environ:
@@ -106,23 +106,23 @@ class RetrievalConfig:
 
 @dataclass
 class FlowConfig:
-    """流程执行配置"""
-    
-    # 执行锁配置
+    """Workflow execution configuration"""
+
+    # Execution lock configuration
     lock_timeout_seconds: int = 300  # 5分钟超时
     lock_check_interval: float = 0.5  # 检查间隔
     
-    # 快照配置
+    # Snapshot configuration
     snapshot_max_count: int = 10  # 最大保留快照数
     
-    # 重试配置
+    # Retry configuration
     max_auto_retry_rounds: int = 2
     retry_delay_seconds: float = 1.0
     
-    # 门禁配置
+    # Gate configuration
     gate_artifacts_min_bytes: int = 20
     
-    # 存储路径（相对于项目根目录）
+    # Storage paths (relative to project root)
     memory_dir: str = "00_memory"
     manuscript_dir: str = "03_manuscript"
     knowledge_base_dir: str = "02_knowledge_base"
